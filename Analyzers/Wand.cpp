@@ -51,7 +51,7 @@ void Wand::analyze() {
 	if (wand_key != 0 && saiph->levels[saiph->position.level].dungeonmap[saiph->position.row][saiph->position.col] == FLOOR) {
 		command = ENGRAVE;
 		priority = PRIORITY_WAND_ENGRAVE_ID;
-		Debug::notice() << "[Wand       ] Asking to engrave-ID " << saiph->inventory[wand_key].name << endl;
+		Debug::notice(saiph->last_turn) << WAND_DEBUG_NAME << "Asking to engrave-ID " << saiph->inventory[wand_key].name << endl;
 		processing = true;
 	}
 }
@@ -93,7 +93,7 @@ void Wand::parseMessages(const string &messages) {
 	if (messages.find(WAND_STRIKING_MESSAGE) != string::npos)
 		req.data = "wand of striking";
 	if (req.data != "") {
-		Debug::notice() << "[Wand       ] Calling wand " << req.data << endl;
+		Debug::notice(saiph->last_turn) << WAND_DEBUG_NAME << "Calling wand " << req.data << endl;
 		saiph->request(req);
 		processing = false;
 		wand_key = 0;
@@ -116,7 +116,7 @@ bool Wand::isUnidentifiedWand(const Item& i) {
 }
 
 void Wand::fail() {
-	Debug::notice() << "[Wand       ] Pre-empted, did not engrave-ID" << endl;
+	Debug::notice(saiph->last_turn) << WAND_DEBUG_NAME << "Pre-empted, did not engrave-ID" << endl;
 }
 
 void Wand::complete() {
