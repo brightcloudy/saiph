@@ -5,19 +5,28 @@
 
 using namespace std;
 
-Dig::Dig(Saiph* saiph) : Analyzer("Dig"), saiph(saiph), dig_direction(0) {
+Dig::Dig(Saiph* saiph) : Analyzer("Dig"), saiph(saiph), dig_direction(0), digging_tool(0) {
 }
 
 void Dig::parseMessages(const string& messages) {
 	if (dig_direction && messages.find(MESSAGE_WHAT_TO_APPLY) != string::npos) {
-		command = findDiggingTool();
+		command = digging_tool;
 		priority = PRIORITY_CONTINUE_ACTION;
 	} else if (dig_direction && messages.find(MESSAGE_DIG_DIRECTION) != string::npos) {
 		command = dig_direction;
 		priority = PRIORITY_CONTINUE_ACTION;
 		dig_direction = 0;
 	}
-	if (!findDiggingTool())
+	if (priority >= PRIORITY_DIG_PATH)
+		return;
+	if (saiph->inventory_changed) {
+		if (digging_tool != 0)
+			if (!isDiggingTool(digging_tool))
+				digging_tool = 0;
+		if (digging_tool == 0)
+			digging_tool = findDiggingTool();
+	}
+	if (digging_tool == 0)
 		return;
 	if (directionIsFloor(DOWN) && directionIsWall(N) && ((directionIsWall(W) && directionIsFloor(NW)) || (directionIsWall(E) && directionIsFloor(NE))))
 		dig_direction = N;
@@ -30,7 +39,7 @@ void Dig::parseMessages(const string& messages) {
 }
 
 void Dig::analyze() {
-	if (dig_direction) {
+	if (dig_direction && freeWeaponHand()) {
 		command = APPLY;
 		priority = PRIORITY_DIG_PATH;
 	}
@@ -81,9 +90,22 @@ bool Dig::directionIsFloor(int direction) {
 	return directionIs(direction) == FLOOR;
 }
 
+bool Dig::isDiggingTool(Item i) {
+	if ((i.name == "pick-axe" || i.name == "dwarvish mattock") && i.beatitude != CURSED)
+		return true;
+	return false;
+}
+
+bool Dig::isDiggingTool(unsigned char letter) {
+	map<unsigned char, Item>::iterator i = saiph->inventory.find(letter);
+	if (i == saiph->inventory.end())
+		return false;
+	return isDiggingTool(i->second);
+}
+
 unsigned char Dig::findDiggingTool() {
 	for (map<unsigned char, Item>::iterator i = saiph->inventory.begin(); i != saiph->inventory.end(); i++)
-		if ((i->second.name == "pick-axe" || i->second.name == "dwarvish mattock") && i->second.beatitude != CURSED)
+		if (isDiggingTool(i->second))
 			return i->first;
 	return 0;
 }
@@ -108,4 +130,13 @@ int Dig::boulderInDirection() {
 	if (curlev.dungeonmap[row+1][col+1] == BOULDER)
 		return SE;
 	return 0;
+}
+
+bool Dig::freeWeaponHand() {
+	for (map<unsigned char, Item>::iterator i = saiph->inventory.begin(); i != saiph->inventory.end(); ++i) {
+		if (i->second.additional.find("weapon in ", 0) == 0 || i->second.additional == "wielded") {
+			return !(i->second.beatitude == CURSED);
+		}
+	}
+	return true; //not wielding anything
 }
