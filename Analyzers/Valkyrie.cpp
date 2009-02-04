@@ -268,6 +268,9 @@ void Valkyrie::setupArmor() {
 	req.priority = 15;
 	saiph->request(req);
 	req.beatitude = BLESSED | UNCURSED;
+	req.data = "helm of opposite alignment";
+	req.priority = 5;
+	saiph->request(req);
 	req.data = "dwarvish iron helm";
 	req.priority = 10;
 	saiph->request(req);

@@ -99,7 +99,7 @@ void Wand::parseMessages(const string &messages) {
 		wand_key = 0;
 	} else if (processing) {
 		//we engraved, but we didn't see a message, so it had no effect
-		Debug::notice() << "[Wand       ] Wand had no engrave message; naming as such" << endl;
+		Debug::notice() << WAND_DEBUG_NAME << "Wand had no engrave message; naming as such" << endl;
 		req.data = WAND_NO_EFFECT_NAME;
 		saiph->request(req);
 		processing = false;
@@ -122,13 +122,6 @@ bool Wand::isUnidentifiedWand(const Item& i) {
 	return false;
 }
 
-<<<<<<< HEAD:Analyzers/Wand.cpp
-void Wand::fail() {
-	Debug::notice(saiph->last_turn) << WAND_DEBUG_NAME << "Pre-empted, did not engrave-ID" << endl;
-}
-
-=======
->>>>>>> e0f9c02c9ddb9d249bbab24c5f77d6765f0acb12:Analyzers/Wand.cpp
 void Wand::complete() {
 	req.request = REQUEST_DIRTY_INVENTORY;
 	saiph->request(req);
