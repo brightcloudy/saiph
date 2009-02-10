@@ -133,39 +133,6 @@ void Wand::parseMessages(const string &messages) {
 			command = ENGRAVE;
 		}
 		priority = PRIORITY_CONTINUE_ACTION;
-<<<<<<< HEAD:Analyzers/Wand.cpp
-		return;
-	}
-	req.request = REQUEST_CALL_ITEM;
-	req.key = wand_key;
-	req.data = "";
-	//some of the wands auto-ID, so we only need to look for the other ones.
-	if (messages.find(WAND_VANISHER_MESSAGE) != string::npos)
-		req.data = WAND_VANISHER_NAME; //if we ever use BoHs, we need to see this
-	if (messages.find(WAND_COLD_MESSAGE) != string::npos)
-		req.data = "wand of cold";
-	if (messages.find(WAND_SLEEP_DEATH_MESSAGE) != string::npos)
-		req.data = "wand of sleep";
-	if (messages.find(WAND_MAGIC_MISSILE_MESSAGE) != string::npos)
-		req.data = "wand of magic missile";
-	if (messages.find(WAND_POLYMORPH_MESSAGE) != string::npos)
-		req.data = "wand of polymorph";
-	if (messages.find(WAND_SLOW_MONSTER_MESSAGE) != string::npos)
-		req.data = "wand of slow monster";
-	if (messages.find(WAND_SPEED_MONSTER_MESSAGE) != string::npos)
-		req.data = "wand of speed monster";
-	if (messages.find(WAND_STRIKING_MESSAGE) != string::npos)
-		req.data = "wand of striking";
-	if (req.data != "") {
-		Debug::notice(saiph->last_turn) << WAND_DEBUG_NAME << "Calling wand " << req.data << endl;
-		saiph->request(req);
-		processing = false;
-		wand_key = 0;
-	} else if (processing) {
-		//we engraved, but we didn't see a message, so it had no effect
-		Debug::notice() << WAND_DEBUG_NAME << "Wand had no engrave message; naming as such" << endl;
-		req.data = WAND_NO_EFFECT_NAME;
-=======
 	} else if (state == WAND_STATE_READY_TO_NAME) {
 		string name = WAND_NO_EFFECT_NAME;
 		for (vector<pair<string, string> >::size_type i = 0; i < wand_engrave_messages.size(); i++)
@@ -178,7 +145,6 @@ void Wand::parseMessages(const string &messages) {
 		state = WAND_STATE_WANT_DIRTY_INVENTORY;
 	} else if (state == WAND_STATE_WANT_DIRTY_INVENTORY) {
 		req.request = REQUEST_DIRTY_INVENTORY;
->>>>>>> 0a81528b6310b228c32cb497e281392a09f5b404:Analyzers/Wand.cpp
 		saiph->request(req);
 		state = WAND_STATE_INIT;
 	}
