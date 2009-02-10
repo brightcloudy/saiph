@@ -13,6 +13,7 @@
 #include "Analyzers/Amulet.h"
 #include "Analyzers/Armor.h"
 #include "Analyzers/Beatitude.h"
+#include "Analyzers/Blind.h"
 #include "Analyzers/Dig.h"
 #include "Analyzers/Donate.h"
 #include "Analyzers/Door.h"
@@ -85,6 +86,7 @@ Saiph::Saiph(int interface) {
 	analyzers.push_back(new Amulet(this));
 	analyzers.push_back(new Armor(this));
 	analyzers.push_back(new Beatitude(this));
+	analyzers.push_back(new Blind(this));
 	analyzers.push_back(new Dig(this));
 	analyzers.push_back(new Donate(this));
 	analyzers.push_back(new Door(this));
@@ -320,27 +322,29 @@ bool Saiph::run() {
 	if (world->player.engulfed)
 		Debug::notice(last_turn) << SAIPH_DEBUG_NAME << "Saiph engulfed" << endl;
 
-	/* set the on_ground pointer if there's loot here */
-	if (levels[position.level].stashes.find(position) != levels[position.level].stashes.end())
-		on_ground = &levels[position.level].stashes[position];
-
 	/* update level */
-	if (!world->menu && !world->player.engulfed) {
-		/* update changed symbols */
-		for (vector<Point>::iterator c = world->changes.begin(); c != world->changes.end(); ++c)
-			levels[position.level].updateMapPoint(*c, (unsigned char) world->view[c->row][c->col], world->color[c->row][c->col]);
-		/* update monsters */
-		levels[position.level].updateMonsters();
-		/* update pathmap */
-		levels[position.level].updatePathMap();
-	} else if (world->player.engulfed) {
-		/* we'll still need to update monster's "visible" while engulfed,
-		 * or she may attempt to farlook a monster */
-		for (map<Point, Monster>::iterator m = levels[position.level].monsters.begin(); m != levels[position.level].monsters.end(); ++m)
-			m->second.visible = false;
+	if (!world->menu) {
+		if (!world->player.engulfed) {
+			/* update changed symbols */
+			for (vector<Point>::iterator c = world->changes.begin(); c != world->changes.end(); ++c)
+				levels[position.level].updateMapPoint(*c, (unsigned char) world->view[c->row][c->col], world->color[c->row][c->col]);
+			/* update monsters */
+			levels[position.level].updateMonsters();
+			/* update pathmap */
+			levels[position.level].updatePathMap();
+		} else {
+			/* we'll still need to update monster's "visible" while engulfed,
+			 * or she may attempt to farlook a monster */
+			for (map<Point, Monster>::iterator m = levels[position.level].monsters.begin(); m != levels[position.level].monsters.end(); ++m)
+				m->second.visible = false;
+		}
 	}
 	/* print maps so we see what we're doing */
 	dumpMaps();
+
+	/* set the on_ground pointer if there's loot here */
+	if (levels[position.level].stashes.find(position) != levels[position.level].stashes.end())
+		on_ground = &levels[position.level].stashes[position];
 
 	/* analyzer stuff comes here */
 	/* reset priority */
@@ -415,10 +419,12 @@ bool Saiph::run() {
 	/* check if we got a command */
 	if (world->question && best_analyzer == analyzers.end()) {
 		Debug::warning(last_turn) << SAIPH_DEBUG_NAME << "Unhandled question: " << world->messages << endl;
-		return false;
+		world->executeCommand(string(1, (char) 27));
+		return true;
 	} else if (world->menu && best_analyzer == analyzers.end()) {
 		Debug::warning(last_turn) << SAIPH_DEBUG_NAME << "Unhandled menu: " << world->messages << endl;
-		return false;
+		world->executeCommand(string(1, (char) 27));
+		return true;
 	} else if (best_analyzer == analyzers.end()) {
 		Debug::warning(last_turn) << SAIPH_DEBUG_NAME << "I have no idea what to do... Searching 42 times" << endl;
 		cout << (unsigned char) 27 << "[1;82H";
@@ -442,9 +448,7 @@ bool Saiph::run() {
 	/* let an analyzer do its command */
 	Debug::notice(last_turn) << COMMAND_DEBUG_NAME << "'" << (*best_analyzer)->command << "' from analyzer " << (*best_analyzer)->name << " with priority " << best_priority << endl;
 	world->executeCommand((*best_analyzer)->command);
-	if (stuck_counter < 42) {
-		(*best_analyzer)->complete();
-	} else {
+	if (stuck_counter % 42 == 41) {
 		/* if we send the same command n times and the turn counter doesn't increase, we probably got a problem */
 		/* let's see if we're moving somewhere */
 		bool was_move = false;
@@ -484,8 +488,15 @@ bool Saiph::run() {
 			Debug::warning(last_turn) << SAIPH_DEBUG_NAME << "Command failed for analyzer " << (*best_analyzer)->name << ". Priority was " << best_priority << " and command was: " << (*best_analyzer)->command << endl;
 			(*best_analyzer)->fail();
 		}
-		/* reset stuck_counter */
-		stuck_counter = 0;
+	} else if (stuck_counter > 168) {
+		/* failed too many times, #quit */
+		Debug::error(last_turn) << SAIPH_DEBUG_NAME << "Appear to be stuck, quitting game" << endl;
+		world->executeCommand(string(1, (char) 27));
+		world->executeCommand(QUIT);
+		world->executeCommand(YES);
+		return false;
+	} else {
+		(*best_analyzer)->complete();
 	}
 	if (last_turn == world->player.turn)
 		stuck_counter++;
@@ -919,7 +930,12 @@ void Saiph::dumpMaps() {
 			cout << (unsigned char) 27 << "[33m";
 		cout << i->first;
 		cout << " - " << i->second.count;
-		cout << " " << (i->second.beatitude == BLESSED ? "blessed" : (i->second.beatitude == CURSED ? "cursed" : (i->second.beatitude == UNCURSED ? "uncursed" : "unknown")));
+		if (i->second.beatitude == BLESSED)
+			cout << " blessed";
+		else if (i->second.beatitude == CURSED)
+			cout << " cursed";
+		else if (i->second.beatitude == UNCURSED)
+			cout << " uncursed";
 		cout << (i->second.greased ? " greased" : "");
 		cout << (i->second.fixed ? " fixed" : "");
 		if (i->second.damage > 0) {
