@@ -14,6 +14,8 @@ void Excalibur::analyze() {
 		return;
 	if (saiph->world->player.alignment != LAWFUL)
 		return;
+	if (saiph->world->player.armor_class > 2)
+		return;
 	else if (saiph->world->player.blind)
 		return; // don't move when blind
 	/* do we have a long sword? */
