@@ -4,6 +4,8 @@
 #define COST_CARDINAL 2
 #define COST_DIAGONAL 3
 #define COST_FOUNTAIN 4 // better not fight on fountains
+#define COST_GRAVE 4 // better not fight on graves
+#define COST_ALTAR 4 // better not fight on altars
 #define COST_ICE 8 // slippery and risky, try to find a way around (don't try very hard, though)
 #define COST_LAVA 512 // lava, hot!
 #define COST_MONSTER 64 // try not to path through monsters
@@ -54,7 +56,6 @@ class Saiph;
 
 class Level {
 	public:
-		PathNode pathmap[MAP_ROW_END + 1][MAP_COL_END + 1];
 		std::map<Point, Monster> monsters;
 		std::map<Point, Stash> stashes;
 		std::map<Point, int> symbols[UCHAR_MAX + 1];
@@ -68,6 +69,7 @@ class Level {
 
 		unsigned char getDungeonSymbol(const Point &point);
 		unsigned char getMonsterSymbol(const Point &point);
+		unsigned int getPathCost(const Point &point);
 		void parseMessages(const std::string &messages);
 		void setDungeonSymbol(const Point &point, unsigned char symbol);
 		unsigned char shortestPath(const Point &target, bool allow_illegal_last_move, int *moves);
@@ -77,6 +79,7 @@ class Level {
 
 	private:
 		Saiph *saiph;
+		PathNode pathmap[MAP_ROW_END + 1][MAP_COL_END + 1];
 		unsigned char dungeonmap[MAP_ROW_END + 1][MAP_COL_END + 1];
 		unsigned char monstermap[MAP_ROW_END + 1][MAP_COL_END + 1];
 
@@ -101,6 +104,13 @@ inline unsigned char Level::getDungeonSymbol(const Point &point) {
 	if (point.row < MAP_ROW_BEGIN || point.row > MAP_ROW_END || point.col < MAP_COL_BEGIN || point.col > MAP_COL_END)
 		return OUTSIDE_MAP;
 	return dungeonmap[point.row][point.col];
+}
+
+inline unsigned int Level::getPathCost(const Point &point) {
+	/* return PathNode.cost for the given point */
+	if (point.row < MAP_ROW_BEGIN || point.row > MAP_ROW_END || point.col < MAP_COL_BEGIN || point.col > MAP_COL_END)
+		return UINT_MAX;
+	return pathmap[point.row][point.col].cost;
 }
 
 inline unsigned char Level::getMonsterSymbol(const Point &point) {
