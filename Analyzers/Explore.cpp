@@ -103,8 +103,8 @@ void Explore::analyze() {
 	if (priority < PRIORITY_EXPLORE_STAIRS_DOWN) {
 		/* explore downstairs unless already exploring upstairs */
 		for (map<Point, int>::iterator s = saiph->levels[saiph->position.level].symbols[(unsigned char) STAIRS_DOWN].begin(); s != saiph->levels[saiph->position.level].symbols[(unsigned char) STAIRS_DOWN].end(); ++s) {
-			if (s->second != UNKNOWN_SYMBOL_VALUE)
-				continue; // we know where these stairs lead
+			/*if (s->second != UNKNOWN_SYMBOL_VALUE)
+				continue; // we know where these stairs lead*/
 			int moves = 0;
 			unsigned char dir = saiph->shortestPath(s->first, false, &moves);
 			if (dir != ILLEGAL_DIRECTION) {
