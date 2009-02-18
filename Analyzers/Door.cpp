@@ -1,4 +1,6 @@
+#include <stack>
 #include "Door.h"
+#include "../Debug.h"
 #include "../Saiph.h"
 #include "../World.h"
 
@@ -27,21 +29,23 @@ void Door::analyze() {
 			return; // still in the pit
 	}
 	/* go to nearest closed door and get it open somehow */
-	int least_moves = INT_MAX;
+	unsigned int least_moves = UNREACHABLE;
 	for (map<Point, int>::iterator d = saiph->levels[saiph->position.level].symbols[(unsigned char) CLOSED_DOOR].begin(); d != saiph->levels[saiph->position.level].symbols[(unsigned char) CLOSED_DOOR].end(); ++d) {
-		if (saiph->levels[saiph->position.level].branch == BRANCH_MINES && d->second == 1) {
+		if (saiph->levels[saiph->position.level].branch == BRANCH_MINES && d->second == DOOR_LOCKED) {
 			/* don't kick/pick doors when we're in the mines */
 			findUnlockingTool();
 			if (unlock_tool_key == 0 || (saiph->inventory[unlock_tool_key].name != "skeleton key" && saiph->inventory[unlock_tool_key].name != "key"))
 				continue; // no key in inventory
-		}
-		int moves = -1;
-		unsigned char dir = saiph->shortestPath(d->first, true, &moves);
-		if (dir == ILLEGAL_DIRECTION)
+		} else if (d->second == DOOR_SHOP_INVENTORY) {
+			// The door is to a shop closed for inventory. Maybe we should revisit later.
 			continue;
-		if (moves == 1) {
+		}
+		const PathNode &node = saiph->shortestPath(d->first);
+		if (node.cost == UNREACHABLE)
+			continue; // can't reach this door
+		if (node.moves == 1) {
 			/* open/pick/kick door */
-			if (d->second != 1) {
+			if (d->second != DOOR_LOCKED) {
 				command = OPEN;
 			} else {
 				findUnlockingTool();
@@ -51,15 +55,15 @@ void Door::analyze() {
 				else
 					command = APPLY;
 			}
-			command2 = dir;
+			command2 = node.dir;
 			position = d->first;
 			priority = PRIORITY_DOOR_OPEN;
 			return;
-		} else if (moves < least_moves) {
+		} else if (node.moves < least_moves) {
 			/* go to door */
-			command = dir;
+			command = node.dir;
 			priority = PRIORITY_DOOR_OPEN;
-			least_moves = moves;
+			least_moves = node.moves;
 		}
 	}
 	if (least_moves < INT_MAX)
@@ -96,6 +100,25 @@ void Door::parseMessages(const string &messages) {
 	} else if (messages.find(MESSAGE_CRAWL_OUT_OF_PIT, 0) != string::npos) {
 		/* crawled out of pit */
 		in_a_pit = false;
+	} else if (messages.find(DOOR_CLOSED_FOR_INVENTORY, 0) != string::npos) {
+		/* a shop that is closed for inventory */
+		stack<Point> door;
+
+		door.push(Point(saiph->position.row + 1, saiph->position.col));
+		door.push(Point(saiph->position.row - 1, saiph->position.col));
+		door.push(Point(saiph->position.row, saiph->position.col + 1));
+		door.push(Point(saiph->position.row, saiph->position.col - 1));
+
+		while (door.empty() == false) {
+			Point top = door.top();
+			door.pop();
+
+			if (saiph->getDungeonSymbol(top) == CLOSED_DOOR) {
+				Debug::notice(saiph->last_turn) << DOOR_DEBUG_NAME << "Marking " << top << " as DOOR_SHOP_INVENTORY" << endl;
+				saiph->setDungeonSymbol(top, DOOR_SHOP_INVENTORY);
+				break;
+			}
+		}
 	}
 }
 

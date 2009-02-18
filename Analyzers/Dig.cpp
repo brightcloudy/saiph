@@ -10,8 +10,11 @@ Dig::Dig(Saiph *saiph) : Analyzer("Dig"), saiph(saiph), digging_tool(ILLEGAL_ITE
 }
 
 void Dig::analyze() {
-	/* TODO: no digging on no-dig levels */
-	if (priority >= PRIORITY_DIG_PATH || digging_tool == ILLEGAL_ITEM || saiph->levels[saiph->position.level].branch == BRANCH_SOKOBAN || !freeWeaponHand())
+	if (priority >= PRIORITY_DIG_PATH || digging_tool == ILLEGAL_ITEM)
+		return;
+	else if (saiph->levels[saiph->position.level].branch == BRANCH_SOKOBAN)
+		return;
+	else if (!freeWeaponHand())
 		return;
 
 	if (dig_locations.size() <= 0) {
@@ -20,29 +23,54 @@ void Dig::analyze() {
 		for (map<Point, int>::iterator b = saiph->levels[saiph->position.level].symbols[(unsigned char) BOULDER].begin(); b != saiph->levels[saiph->position.level].symbols[(unsigned char) BOULDER].end(); ++b)
 			dig_locations.push_back(b->first);
 
-		/* TODO: FLOOR tiles we can't reach */
-
-		/* TODO: shortcuts */
+		/* dig free UNPASSABLE FLOOR tiles */
+		if (!saiph->levels[saiph->position.level].undiggable) {
+			for (map<Point, int>::iterator b = saiph->levels[saiph->position.level].symbols[(unsigned char) FLOOR].begin(); b != saiph->levels[saiph->position.level].symbols[(unsigned char) FLOOR].end(); ++b) {
+				const PathNode &node = saiph->shortestPath(b->first);
+				if (node.cost != UNPASSABLE)
+					continue; // can either walk on it or not reach it
+				/* dig one of the N, W, E or S tile if we can reach it */
+				const PathNode north = saiph->shortestPath(Point(b->first.row - 1, b->first.col));
+				if (north.cost == UNPASSABLE) {
+					dig_locations.push_back(Point(b->first.row - 1, b->first.col));
+					continue;
+				}
+				const PathNode west = saiph->shortestPath(Point(b->first.row, b->first.col - 1));
+				if (west.cost == UNPASSABLE) {
+					dig_locations.push_back(Point(b->first.row, b->first.col - 1));
+					continue;
+				}
+				const PathNode east = saiph->shortestPath(Point(b->first.row, b->first.col + 1));
+				if (east.cost == UNPASSABLE) {
+					dig_locations.push_back(Point(b->first.row, b->first.col + 1));
+					continue;
+				}
+				const PathNode south = saiph->shortestPath(Point(b->first.row + 1, b->first.col));
+				if (south.cost == UNPASSABLE) {
+					dig_locations.push_back(Point(b->first.row + 1, b->first.col));
+					continue;
+				}
+			}
+		}
 	}
 
 	/* dig nearest dig_location */
-	int least_moves = INT_MAX;
+	unsigned int least_moves = UNREACHABLE;
 	for (list<Point>::iterator d = dig_locations.begin(); d != dig_locations.end(); ) {
-		int moves = 0;
-		unsigned char dir = saiph->shortestPath(*d, true, &moves);
-		if (dir == ILLEGAL_DIRECTION || moves > least_moves) {
+		const PathNode &node = saiph->shortestPath(*d);
+		if (node.cost == UNREACHABLE || node.moves > least_moves) {
 			++d;
 			continue;
 		}
 		/* we're going to move or dig, set priority and least_moves */
 		priority = PRIORITY_DIG_PATH;
-		least_moves = moves;
-		if (moves == 1) {
+		least_moves = node.moves;
+		if (node.moves == 1) {
 			/* next to location we want to dig, but do we still want to dig here? */
 			unsigned char symbol = saiph->getDungeonSymbol(*d);
 			if (symbol == BOULDER || symbol == VERTICAL_WALL || symbol == HORIZONTAL_WALL || symbol == SOLID_ROCK) {
 				/* yes, we do */
-				dig_direction = dir;
+				dig_direction = node.dir;
 				command = APPLY;
 			} else {
 				/* no, we can no longer dig on this location */
@@ -52,7 +80,7 @@ void Dig::analyze() {
 			return; // no point iterating remaining list
 		} else {
 			/* move towards location to dig */
-			command = dir;
+			command = node.dir;
 		}
 		++d;
 	}

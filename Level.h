@@ -30,6 +30,7 @@
 #define LEVEL_THERE_IS_NOTHING_HERE "  There is nothing here to pick up.  "
 #define LEVEL_THINGS_THAT_ARE_HERE "  Things that are here:  "
 #define LEVEL_THINGS_THAT_YOU_FEEL_HERE "  Things that you feel here:  "
+#define LEVEL_UNDIGGABLE "  is too hard to dig in"
 #define LEVEL_YOU_FEEL_HERE "  You feel here " // not two spaces here as it's followed by eg. "a lichen corpse"
 #define LEVEL_YOU_FEEL_NO_OBJECTS "  You feel no objects here.  "
 #define LEVEL_YOU_SEE_HERE "  You see here " // not two spaces here as it's followed by eg. "a lichen corpse"
@@ -40,28 +41,24 @@
 #include <string>
 #include "Globals.h"
 #include "Monster.h"
+#include "PathNode.h"
 #include "Point.h"
 #include "Stash.h"
-
-/* struct used for pathing */
-struct PathNode {
-	int nextrow;
-	int nextcol;
-	unsigned int cost;
-	unsigned char move;
-};
 
 class Item;
 class Saiph;
 
 class Level {
 	public:
+		PathNode pathmap[MAP_ROW_END + 1][MAP_COL_END + 1];
+		unsigned char monstermap[MAP_ROW_END + 1][MAP_COL_END + 1];
 		std::map<Point, Monster> monsters;
 		std::map<Point, Stash> stashes;
 		std::map<Point, int> symbols[UCHAR_MAX + 1];
 		std::string name;
 		int depth;
 		int branch;
+		bool undiggable;
 
 		static bool passable[UCHAR_MAX + 1];
 
@@ -69,19 +66,17 @@ class Level {
 
 		unsigned char getDungeonSymbol(const Point &point);
 		unsigned char getMonsterSymbol(const Point &point);
-		unsigned int getPathCost(const Point &point);
 		void parseMessages(const std::string &messages);
 		void setDungeonSymbol(const Point &point, unsigned char symbol);
-		unsigned char shortestPath(const Point &target, bool allow_illegal_last_move, int *moves);
+		const PathNode &shortestPath(const Point &target);
 		void updateMapPoint(const Point &point, unsigned char symbol, int color);
 		void updateMonsters();
 		void updatePathMap();
 
 	private:
 		Saiph *saiph;
-		PathNode pathmap[MAP_ROW_END + 1][MAP_COL_END + 1];
+		PathNode pathnode_outside_map;
 		unsigned char dungeonmap[MAP_ROW_END + 1][MAP_COL_END + 1];
-		unsigned char monstermap[MAP_ROW_END + 1][MAP_COL_END + 1];
 
 		static Point pathing_queue[PATHING_QUEUE_SIZE];
 		static unsigned char uniquemap[UCHAR_MAX + 1][CHAR_MAX + 1];
@@ -93,7 +88,7 @@ class Level {
 
 		void addItemToStash(const Point &point, const Item &item);
 		void clearStash(const Point &point);
-		bool updatePathMapHelper(const Point &to, const Point &from);
+		unsigned int updatePathMapHelper(const Point &to, const Point &from);
 
 		static void init();
 };
@@ -104,13 +99,6 @@ inline unsigned char Level::getDungeonSymbol(const Point &point) {
 	if (point.row < MAP_ROW_BEGIN || point.row > MAP_ROW_END || point.col < MAP_COL_BEGIN || point.col > MAP_COL_END)
 		return OUTSIDE_MAP;
 	return dungeonmap[point.row][point.col];
-}
-
-inline unsigned int Level::getPathCost(const Point &point) {
-	/* return PathNode.cost for the given point */
-	if (point.row < MAP_ROW_BEGIN || point.row > MAP_ROW_END || point.col < MAP_COL_BEGIN || point.col > MAP_COL_END)
-		return UINT_MAX;
-	return pathmap[point.row][point.col].cost;
 }
 
 inline unsigned char Level::getMonsterSymbol(const Point &point) {
@@ -133,5 +121,12 @@ inline void Level::setDungeonSymbol(const Point &point, unsigned char symbol) {
 	symbols[symbol][point] = UNKNOWN_SYMBOL_VALUE;
 	/* update dungeonmap */
 	dungeonmap[point.row][point.col] = symbol;
+}
+
+inline const PathNode &Level::shortestPath(const Point &point) {
+	/* return a PathNode that tells us which direction to move to get to given point */
+	if (point.row < MAP_ROW_BEGIN || point.row > MAP_ROW_END || point.col < MAP_COL_BEGIN || point.col > MAP_COL_END)
+		return pathnode_outside_map;
+	return pathmap[point.row][point.col];
 }
 #endif
