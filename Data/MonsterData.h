@@ -164,9 +164,7 @@
 #define MS_IMITATE      19      /* imitates others (leocrotta) */
 #define MS_ORC          MS_GRUNT        /* intelligent brutes */
 #define MS_HUMANOID     20      /* generic traveling companion */
-#ifdef KOPS
 #define MS_ARREST       21      /* "Stop in the name of the law!" (Kops) */
-#endif
 #define MS_SOLDIER      22      /* army and watchmen expressions */
 #define MS_GUARD        23      /* "Please drop that gold and follow me." */
 #define MS_DJINNI       24      /* "Thank you for freeing me!" */
@@ -336,8 +334,8 @@ class MonsterData {
 		int color;
 
 		static const MonsterData &getMonsterData(int id);
-		static const MonsterData &getMonsterData(unsigned char symbol, int color);
-		static const MonsterData &getMonsterData(const std::string &name);
+		static int getMonsterID(unsigned char symbol, int color);
+		static int getMonsterID(const std::string &name);
 		static void init();
 
 	private:
@@ -356,16 +354,16 @@ inline const MonsterData &MonsterData::getMonsterData(int id) {
 	return monsters[id];
 }
 
-inline const MonsterData &MonsterData::getMonsterData(unsigned char symbol, int color) {
+inline int MonsterData::getMonsterID(unsigned char symbol, int color) {
 	if (color < 0 || color > INVERSE_BOLD_WHITE)
-		return getMonsterData(0);
-	return getMonsterData(monster_symbol_mapping[symbol][color]);
+		return 0;
+	return monster_symbol_mapping[symbol][color];
 }
 
-inline const MonsterData &MonsterData::getMonsterData(const std::string &name) {
+inline int MonsterData::getMonsterID(const std::string &name) {
 	std::map<std::string, int>::iterator m = monster_name_mapping.find(name);
 	if (m == monster_name_mapping.end())
-		return getMonsterData(0);
-	return getMonsterData(m->second);
+		return 0;
+	return m->second;
 }
 #endif
