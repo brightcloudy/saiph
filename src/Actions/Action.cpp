@@ -4,6 +4,8 @@
 #include "Actions/Apply.h"
 #include "Actions/ApplyInDirection.h"
 #include "Actions/Call.h"
+#include "Actions/Donate.h"
+#include "Actions/Dip.h"
 #include "Actions/Drop.h"
 #include "Actions/DropGold.h"
 #include "Actions/Eat.h"
@@ -27,7 +29,6 @@
 #include "Actions/Search.h"
 #include "Actions/TakeOff.h"
 #include "Actions/Throw.h"
-#include "Actions/Travel.h"
 #include "Actions/Unlock.h"
 #include "Actions/Wear.h"
 #include "Actions/Wield.h"
@@ -66,7 +67,11 @@ const int ListPlayerAttributes::ID = 27;
 const int Wield::ID = 28;
 const int TakeOff::ID = 29;
 const int Wear::ID = 30;
-const int Travel::ID = 31;
+const int Dip::ID = 31;
+const int Donate::ID = 32;
+
+/* used for the travel command "_" */
+Point Move::_last_target;
 
 /* constructors/destructor */
 Action::Action(analyzer::Analyzer* analyzer, bool increase_turn_counter) : _sequence(0), _analyzer(analyzer), _increase_turn_counter(increase_turn_counter) {
@@ -82,4 +87,8 @@ analyzer::Analyzer* Action::analyzer() {
 
 bool Action::increaseTurnCounter() {
 	return _increase_turn_counter;
+}
+
+void Action::failed() {
+	_analyzer->actionFailed();
 }
