@@ -21,7 +21,7 @@ public:
 	unsigned char monster(unsigned char monster);
 	unsigned int search() const;
 	unsigned int search(unsigned int search);
-	unsigned int searchInc(int searches);
+	unsigned int searchInc();
 	unsigned char symbol() const;
 	unsigned char symbol(unsigned char symbol);
 	void updatePath(const Point& next, unsigned char direction, unsigned int distance, unsigned int cost);

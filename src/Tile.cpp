@@ -56,9 +56,9 @@ unsigned int Tile::search(unsigned int search) {
 	return this->search();
 }
 
-unsigned int Tile::searchInc(int searches) {
+unsigned int Tile::searchInc() {
 	if (_search < TILE_FULLY_SEARCHED)
-		return _search += searches;
+		return ++_search;
 	return _search;
 }
 
