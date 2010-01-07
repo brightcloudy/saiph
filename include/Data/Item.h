@@ -2,10 +2,13 @@
 #define DATA_ITEM_H
 
 #include "Data/Material.h"
+#include <set>
 #include <map>
 #include <string>
 
 namespace data {
+	class Item;
+	typedef std::set<const data::Item*> ItemSet;
 
 	class Item {
 	public:
