@@ -16,6 +16,7 @@
 using namespace data;
 
 std::map<const std::string, const Wand*> Wand::_wands;
+std::vector<const std::string> Wand::_wand_appearances;
 
 Wand::Wand(const std::string& name, int cost, int material, int maximum_charges, int zap_type, const std::string& engrave_message, unsigned long long properties)
 		: Item(name, cost, 7, WAND, material, properties), _maximum_charges(maximum_charges), _zap_type(zap_type), _engrave_message(engrave_message) {
@@ -54,38 +55,41 @@ void Wand::init() {
 	create("wand of death", 500, MATERIAL_UNKNOWN, 8, WAND_ZAP_TYPE_RAY, WAND_SLEEP_DEATH_MESSAGE, PROPERTY_MAGIC);
 	create("wand of wishing", 500, MATERIAL_UNKNOWN, 3, WAND_ZAP_TYPE_NONDIRECTIONAL, "", PROPERTY_MAGIC);
 
-	// random appearances
-	create("glass wand", 0, MATERIAL_GLASS, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("balsa wand", 0, MATERIAL_WOOD, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("crystal wand", 0, MATERIAL_GLASS, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("maple wand", 0, MATERIAL_WOOD, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("pine wand", 0, MATERIAL_WOOD, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("oak wand", 0, MATERIAL_WOOD, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("ebony wand", 0, MATERIAL_WOOD, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("marble wand", 0, MATERIAL_MINERAL, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("tin wand", 0, MATERIAL_METAL, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("brass wand", 0, MATERIAL_METAL, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("copper wand", 0, MATERIAL_COPPER, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("silver wand", 0, MATERIAL_SILVER, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("platinum wand", 0, MATERIAL_METAL, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("iridium wand", 0, MATERIAL_METAL, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("zinc wand", 0, MATERIAL_METAL, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("aluminum wand", 0, MATERIAL_METAL, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("uranium wand", 0, MATERIAL_METAL, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("iron wand", 0, MATERIAL_IRON, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("steel wand", 0, MATERIAL_METAL, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("hexagonal wand", 0, MATERIAL_IRON, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("short wand", 0, MATERIAL_IRON, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("runed wand", 0, MATERIAL_WOOD, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("long wand", 0, MATERIAL_IRON, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("curved wand", 0, MATERIAL_IRON, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("forked wand", 0, MATERIAL_IRON, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("spiked wand", 0, MATERIAL_IRON, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
-	create("jeweled wand", 0, MATERIAL_IRON, 0, WAND_ZAP_TYPE_UNSURE, "", PROPERTY_RANDOM_APPEARANCE);
+	_wand_appearances.insert("marble wand");
+	_wand_appearances.insert("glass wand");
+	_wand_appearances.insert("crystal wand");
+	_wand_appearances.insert("balsa wand");
+	_wand_appearances.insert("maple wand");
+	_wand_appearances.insert("oak wand");
+	_wand_appearances.insert("pine wand");
+	_wand_appearances.insert("ebony wand");
+	_wand_appearances.insert("runed wand");
+	_wand_appearances.insert("copper wand");
+	_wand_appearances.insert("silver wand");
+	_wand_appearances.insert("platinum wand");
+	_wand_appearances.insert("iron wand");
+	_wand_appearances.insert("long wand");
+	_wand_appearances.insert("short wand");
+	_wand_appearances.insert("curved wand");
+	_wand_appearances.insert("forked wand");
+	_wand_appearances.insert("hexagonal wand");
+	_wand_appearances.insert("spiked wand")
+	_wand_appearances.insert("jeweled wand")
+	_wand_appearances.insert("tin wand");
+	_wand_appearances.insert("brass wand");
+	_wand_appearances.insert("iridium wand");
+	_wand_appearances.insert("zinc wand");
+	_wand_appearances.insert("aluminum wand");
+	_wand_appearances.insert("uranium wand");
+	_wand_appearances.insert("steel wand");
 }
 
 const std::map<const std::string, const Wand*>& Wand::wands() {
 	return _wands;
+}
+
+const std::vector<const std::string>& Wand::appearances() {
+	return _wand_appearances;
 }
 
 int Wand::maximumCharges() const {

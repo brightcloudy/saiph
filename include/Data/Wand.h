@@ -23,6 +23,7 @@ namespace data {
 
 		static void init();
 		static const std::map<const std::string, const Wand*>& wands();
+		static const std::vector<const std::string>& appearances();
 		int maximumCharges() const;
 		int zapType() const;
 		const std::string& engraveMessage() const; //returns "" if no message
@@ -34,6 +35,7 @@ namespace data {
 
 	private:
 		static std::map<const std::string, const Wand*> _wands;
+		static std::vector<const std::string> _wand_appearances;
 
 		static void create(const std::string& name, int cost, int material, int maximum_charges, int zap_type, const std::string& engrave_message, unsigned long long properties);
 
