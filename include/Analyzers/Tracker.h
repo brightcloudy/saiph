@@ -2,6 +2,8 @@
 #define	TRACKER_H
 
 #include "Analyzers/Analyzer.h"
+#include "EventBus.h"
+#include "Events/PriceLearned.h"
 #include <string>
 #include <set>
 #include <map>
@@ -30,14 +32,36 @@ namespace analyzer {
 				
 				_price_groups[(*i)->cost()].insert(*i);
 			}
+
+			EventBus::registerEvent(event::PriceLearned::ID, this);
+		}
+
+		virtual ~Tracker() {
+			EventBus::unregisterEvent(event::PriceLearned::ID, this);
 		}
 
 		virtual void analyze() {
 			//TODO: name items when we make deductions
 		}
 
-		virtual void onEvent(event::Event * const) {
-			//TODO: price-ID event
+		virtual void onEvent(event::Event* const event) {
+			if (event->id() == event::PriceLearned::ID) {
+				event::PriceLearned* price_event = static_cast<event::PriceLearned* const>(event);
+				const std::string& item = price_event->item();
+				const std::set<const int>& prices = price_event->prices();
+
+				//if it isn't one of our items, skip it
+				if (_possible_identities.find(item) == _possible_identities.end())
+					return;
+
+				std::set<const ItemType*> possibilities;
+				for (const std::set<const int>::const_iterator i = prices.begin(); i != prices.end(); i++) {
+					for (set_ci j = _price_groups[*i].begin(); j != _price_groups[*i].end(); j++)
+						possibilities.insert(*j);
+				}
+
+				constrainWithin(price_event->item(), possibilities);
+			}
 		}
 	protected:
 

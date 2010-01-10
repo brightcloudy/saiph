@@ -17,11 +17,11 @@ namespace event {
 			return ID;
 		}
 
-		const std::string& item() {
+		const std::string& item() const {
 			return _item;
 		}
 
-		const std::set<const int>& prices() {
+		const std::set<const int>& prices() const {
 			return _prices;
 		}
 	private:
