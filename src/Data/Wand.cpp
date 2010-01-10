@@ -84,7 +84,7 @@ void Wand::init() {
 	_wand_appearances.insert("steel wand");
 }
 
-const std::map<const std::string, const Wand*>& Wand::wands() {
+const std::map<const std::string, const Wand*>& Wand::items() {
 	return _wands;
 }
 

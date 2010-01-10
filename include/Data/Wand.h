@@ -22,7 +22,7 @@ namespace data {
 		virtual ~Wand();
 
 		static void init();
-		static const std::map<const std::string, const Wand*>& wands();
+		static const std::map<const std::string, const Wand*>& items();
 		static const std::vector<const std::string>& appearances();
 		int maximumCharges() const;
 		int zapType() const;
