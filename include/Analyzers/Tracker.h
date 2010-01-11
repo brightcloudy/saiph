@@ -6,6 +6,7 @@
 #include "EventBus.h"
 #include "Events/PriceLearned.h"
 #include "Item.h"
+#include "World.h"
 #include <string>
 #include <set>
 #include <map>
@@ -21,18 +22,18 @@ namespace analyzer {
 	 * class Wand : public Tracker<data::Wand>
 	 */
 	template<class ItemType>
-	class Tracker : Analyzer {
+	class Tracker : public Analyzer {
 	public:
-		Tracker() : _one_to_one_mapping(ItemType::items().size() == ItemType::appearances().size()) {
-			const std::set<const ItemType*>& identities = ItemType::items();
-			const std::set<const std::string>& appearances = ItemType::appearances();
+		Tracker(const std::string& analyzerName) : Analyzer(analyzerName), _one_to_one_mapping(ItemType::items().size() == ItemType::appearances().size()) {
+			const std::map<const std::string, const ItemType*>& identities = ItemType::items();
+			const std::vector<std::string>& appearances = ItemType::appearances();
 
-			for (std::set<const ItemType*>::const_iterator i = identities.begin(); i != identities.end(); i++) {
-				for (std::set<const std::string>::const_iterator j = appearances.begin(); j != appearances.end(); j++) {
-					_possible_identities[*j] = *i;
+			for (typename std::map<const std::string, const ItemType*>::const_iterator i = identities.begin(); i != identities.end(); i++) {
+				for (typename std::vector<std::string>::const_iterator j = appearances.begin(); j != appearances.end(); j++) {
+					_possible_identities[*j].insert(i->second);
 				}
 				
-				_price_groups[(*i)->cost()].insert(*i);
+				_price_groups[i->second->cost()].insert(i->second);
 			}
 
 			EventBus::registerEvent(event::PriceLearned::ID, this);
@@ -43,10 +44,11 @@ namespace analyzer {
 		}
 
 		virtual void analyze() {
-			for (std::map<unsigned char, Item>::const_iterator i = Inventory.items().begin(); i != Inventory.items().end(); i++) {
-				std::set<const std::string>::const_iterator appearance = _name_queue.find(i->second.name());
+			for (std::map<unsigned char, Item>::const_iterator i = Inventory::items().begin(); i != Inventory::items().end(); i++) {
+				std::set<std::string>::const_iterator appearance = _name_queue.find(i->second.name());
 				if (appearance != _name_queue.end()) {
-					World::queueAction(new action::Call(this, i->first, *(_possible_identities[*appearance].begin())));
+					const ItemType* identity = *(_possible_identities[*appearance].begin());
+					World::queueAction(new action::Call(this, i->first, identity->name()));
 					_name_queue.erase(appearance);
 				}
 			}
@@ -56,14 +58,14 @@ namespace analyzer {
 			if (event->id() == event::PriceLearned::ID) {
 				event::PriceLearned* price_event = static_cast<event::PriceLearned* const>(event);
 				const std::string& item = price_event->item();
-				const std::set<const int>& prices = price_event->prices();
+				const std::set<int>& prices = price_event->prices();
 
 				//if it isn't one of our items, skip it
 				if (_possible_identities.find(item) == _possible_identities.end())
 					return;
 
 				std::set<const ItemType*> possibilities;
-				for (const std::set<const int>::const_iterator i = prices.begin(); i != prices.end(); i++) {
+				for (std::set<int>::const_iterator i = prices.begin(); i != prices.end(); i++) {
 					for (set_ci j = _price_groups[*i].begin(); j != _price_groups[*i].end(); j++)
 						possibilities.insert(*j);
 				}
@@ -88,7 +90,7 @@ namespace analyzer {
 					++i; //advance the loop
 
 			//no other appearances can have this item
-			for (map_ci i = _possible_identities.begin(); i != _possible_identities.end(); i++)
+			for (map_i i = _possible_identities.begin(); i != _possible_identities.end(); i++)
 				if (i->first != appearance)
 					if (i->second.erase(item) && _one_to_one_mapping && i->second.size() == 1)
 						set(i->first, *(i->second.begin()));
@@ -131,7 +133,7 @@ namespace analyzer {
 		 * Since we might not have an item in our inventory when we make a deduction
 		 * about it, save it in the #name queue.
 		 */
-		std::set<const std::string> _name_queue;
+		std::set<std::string> _name_queue;
 		/*
 		 * A map from each price to the set of items having that price, for
 		 * price-ID purposes.
@@ -142,8 +144,9 @@ namespace analyzer {
 		 * to make loops more readable.
 		 */
 		std::map<const std::string, std::set<const ItemType*> > _possible_identities;
-		typedef std::map<const std::string, std::set<const ItemType*> >::const_iterator map_ci;
-		typedef std::set<const ItemType*>::const_iterator set_ci;
+		typedef typename std::map<const std::string, std::set<const ItemType*> >::const_iterator map_ci;
+		typedef typename std::map<const std::string, std::set<const ItemType*> >::iterator map_i;
+		typedef typename std::set<const ItemType*>::const_iterator set_ci;
 
 		/*
 		 * All identities must have an appearance, so if an identity is only
@@ -153,18 +156,18 @@ namespace analyzer {
 		 */
 		void checkIdentityOnlyPossibleForOneAppearance(const std::string& appearance) {
 			//if any identity is only possible for one appearance, set it
-			for (set_ci i = ItemType::items().begin(); i != ItemType::items().end(); i++) {
+			for (typename std::map<const std::string, const ItemType*>::const_iterator i = ItemType::items().begin(); i != ItemType::items().end(); i++) {
 				std::string app = "";
 				bool keep_looping = true;
 				for (map_ci j = _possible_identities.begin(); j != _possible_identities.end() && keep_looping; j++)
-					if (j->second.find(*i) != j->second.end()) {
+					if (j->second.find(i->second) != j->second.end()) {
 						if (app != "") //this is the second appearance for this identity
 							keep_looping = false;
 						else
 							app = j->first;
 					}
 				if (app != "" && keep_looping) //exactly one appearance for this identity!
-					set(app, *i);
+					set(app, i->second);
 			}
 		}
 
@@ -175,9 +178,12 @@ namespace analyzer {
 		std::set<const ItemType*> complement(const std::set<const ItemType*>& set) {
 			std::set<const ItemType*> result;
 			//{all items} - set = set complement
-			std::set_difference(ItemType::items().begin(), ItemType::items.end(),
-				set.begin(), set.end(),
-				std::inserter(result, result.end()));
+			//if ItemType::items() was a std::set<ItemType*>, I'd use
+			//std::set_difference here, but I have to write it out
+			for (typename std::map<const std::string, const ItemType*>::const_iterator i = ItemType::items().begin(); i != ItemType::items().end(); i++)
+				result.insert(i->second);
+			for (set_ci i = set.begin(); i != set.end(); i++)
+				result.erase(*i);
 			return result;
 		}
 	};
