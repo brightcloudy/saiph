@@ -9,7 +9,7 @@ namespace event {
 	public:
 		static const int ID;
 
-		PriceLearned(const std::string& item, std::set<const int> prices) : Event("PriceLearned"), _item(item), _prices(prices) {
+		PriceLearned(const std::string& item, const std::set<int>& prices) : Event("PriceLearned"), _item(item), _prices(prices) {
 		}
 		virtual ~PriceLearned() {}
 
@@ -21,12 +21,12 @@ namespace event {
 			return _item;
 		}
 
-		const std::set<const int>& prices() const {
+		const std::set<int>& prices() const {
 			return _prices;
 		}
 	private:
 		const std::string _item;
-		const std::set<const int> _prices;
+		const std::set<int> _prices;
 	};
 }
 
