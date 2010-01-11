@@ -73,6 +73,20 @@ namespace analyzer {
 				constrainWithin(price_event->item(), possibilities);
 			}
 		}
+
+		/*
+		 * Returns true if we know this item's appearance.
+		 * e.g., checking if we've seen scrolls of charging before making a wand-wish.
+		 */
+		bool isIdentified(const std::string& identity) {
+			int appearances = 0;
+			for (map_ci i = _possible_identities.begin(); i != _possible_identities.end(); i++) {
+				for (set_ci j = i->second.begin(); j != i->second.end(); j++)
+					if (j->name() == identity)
+						appearances++;
+			}
+			return appearances == 1;
+		}
 	protected:
 
 		/*
