@@ -1,13 +1,15 @@
 #ifndef TRACKER_H
 #define	TRACKER_H
 
+#include "Actions/Call.h"
 #include "Analyzers/Analyzer.h"
 #include "EventBus.h"
 #include "Events/PriceLearned.h"
+#include "Item.h"
 #include <string>
 #include <set>
 #include <map>
-#include <queue>
+#include <vector>
 #include <algorithm>
 #include <iterator>
 #include <utility>
@@ -21,7 +23,7 @@ namespace analyzer {
 	template<class ItemType>
 	class Tracker : Analyzer {
 	public:
-		Tracker() : _one_to_one_mapping (ItemType::items().size() == ItemType::appearances().size()) {
+		Tracker() : _one_to_one_mapping(ItemType::items().size() == ItemType::appearances().size()) {
 			const std::set<const ItemType*>& identities = ItemType::items();
 			const std::set<const std::string>& appearances = ItemType::appearances();
 
@@ -41,7 +43,13 @@ namespace analyzer {
 		}
 
 		virtual void analyze() {
-			//TODO: name items when we make deductions
+			for (std::map<unsigned char, Item>::const_iterator i = Inventory.items().begin(); i != Inventory.items().end(); i++) {
+				std::set<const std::string>::const_iterator appearance = _name_queue.find(i->second.name());
+				if (appearance != _name_queue.end()) {
+					World::queueAction(new action::Call(this, i->first, *(_possible_identities[*appearance].begin())));
+					_name_queue.erase(appearance);
+				}
+			}
 		}
 
 		virtual void onEvent(event::Event* const event) {
@@ -70,7 +78,7 @@ namespace analyzer {
 		 */
 		void set(const std::string& appearance, const ItemType* item) {
 			//add it to the name queue
-			_name_queue.push(std::make_pair(appearance, item));
+			_name_queue.insert(appearance);
 
 			//remove all other items for this appearance
 			for (set_ci i = _possible_identities[appearance].begin(); i != _possible_identities[appearance].end();)
@@ -103,7 +111,8 @@ namespace analyzer {
 		/*
 		 * Appearance is one of the possibilities inside the set.
 		 *
-		 * This is most commonly used for price groups.
+		 * This is most commonly used for price groups, but might also be used
+		 * for the ambiguous wand engrave messages etc.
 		 */
 		void constrainWithin(const std::string& appearance, const std::set<const ItemType*>& set) {
 			std::set<const ItemType*> toBeRuledOut = complement(set);
@@ -119,10 +128,10 @@ namespace analyzer {
 		 */
 		const bool _one_to_one_mapping;
 		/*
-		 * Since we make deductions in onEvent() or our derived class' parseMessages(),
-		 * keep a queue of #names to issue in our analyze().
+		 * Since we might not have an item in our inventory when we make a deduction
+		 * about it, save it in the #name queue.
 		 */
-		std::queue<const std::pair<const std::string, const ItemType*> > _name_queue;
+		std::set<const std::string> _name_queue;
 		/*
 		 * A map from each price to the set of items having that price, for
 		 * price-ID purposes.
