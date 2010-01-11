@@ -96,7 +96,7 @@ set(HEADER_FILES
 #	include/Analyzers/Throne.h
 	include/Analyzers/Tracker.h
 	include/Analyzers/Vault.h
-#	include/Analyzers/Wand.h
+	include/Analyzers/Wand.h
 	include/Analyzers/Weapon.h
 #	include/Analyzers/Wish.h
 	# Data
@@ -215,7 +215,7 @@ set(SOURCE_FILES
 #	src/Analyzers/Sokoban.cpp
 #	src/Analyzers/Throne.cpp
 	src/Analyzers/Vault.cpp
-#	src/Analyzers/Wand.cpp
+	src/Analyzers/Wand.cpp
 	src/Analyzers/Weapon.cpp
 #	src/Analyzers/Wish.cpp
 	# Data
