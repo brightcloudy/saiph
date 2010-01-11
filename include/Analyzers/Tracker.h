@@ -120,7 +120,7 @@ namespace analyzer {
 				if (_one_to_one_mapping && _possible_identities[appearance].size() == 1)
 					set(appearance, *(_possible_identities[appearance].begin()));
 				
-				checkIdentityOnlyPossibleForOneAppearance(appearance);
+				checkIdentityOnlyPossibleForOneAppearance();
 			}
 		}
 
@@ -177,7 +177,7 @@ namespace analyzer {
 		 *
 		 * Call this whenever a possibility is removed from an appearance.
 		 */
-		void checkIdentityOnlyPossibleForOneAppearance(const std::string& appearance) {
+		void checkIdentityOnlyPossibleForOneAppearance() {
 			//if any identity is only possible for one appearance, set it
 			for (typename std::map<const std::string, const ItemType*>::const_iterator i = ItemType::items().begin(); i != ItemType::items().end(); i++) {
 				std::string app = "";
