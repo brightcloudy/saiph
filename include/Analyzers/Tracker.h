@@ -135,6 +135,15 @@ namespace analyzer {
 			for (set_ci i = toBeRuledOut.begin(); i != toBeRuledOut.end(); i++)
 				ruleOut(appearance, *i);
 		}
+
+		/*
+		 * Returns the set of possibilities for a particular appearance, for use
+		 * in subclass' logic (e.g., Wand::engraveUseful()).
+		 */
+		const std::set<const ItemType*>& possibilitiesFor(const std::string& appearance) {
+			//TODO: check that appearance is a valid appearance for this type
+			return _possible_identities[appearance];
+		}
 	private:
 		/*
 		 * Some item classes have more appearances than identities (e.g., scrolls),
