@@ -16,7 +16,7 @@
 using namespace data;
 
 std::map<const std::string, const Wand*> Wand::_wands;
-std::vector<const std::string> Wand::_wand_appearances;
+std::vector<std::string> Wand::_wand_appearances;
 
 Wand::Wand(const std::string& name, int cost, int material, int maximum_charges, int zap_type, const std::string& engrave_message, unsigned long long properties)
 		: Item(name, cost, 7, WAND, material, properties), _maximum_charges(maximum_charges), _zap_type(zap_type), _engrave_message(engrave_message) {
@@ -55,40 +55,40 @@ void Wand::init() {
 	create("wand of death", 500, MATERIAL_UNKNOWN, 8, WAND_ZAP_TYPE_RAY, WAND_SLEEP_DEATH_MESSAGE, PROPERTY_MAGIC);
 	create("wand of wishing", 500, MATERIAL_UNKNOWN, 3, WAND_ZAP_TYPE_NONDIRECTIONAL, "", PROPERTY_MAGIC);
 
-	_wand_appearances.insert("marble wand");
-	_wand_appearances.insert("glass wand");
-	_wand_appearances.insert("crystal wand");
-	_wand_appearances.insert("balsa wand");
-	_wand_appearances.insert("maple wand");
-	_wand_appearances.insert("oak wand");
-	_wand_appearances.insert("pine wand");
-	_wand_appearances.insert("ebony wand");
-	_wand_appearances.insert("runed wand");
-	_wand_appearances.insert("copper wand");
-	_wand_appearances.insert("silver wand");
-	_wand_appearances.insert("platinum wand");
-	_wand_appearances.insert("iron wand");
-	_wand_appearances.insert("long wand");
-	_wand_appearances.insert("short wand");
-	_wand_appearances.insert("curved wand");
-	_wand_appearances.insert("forked wand");
-	_wand_appearances.insert("hexagonal wand");
-	_wand_appearances.insert("spiked wand")
-	_wand_appearances.insert("jeweled wand")
-	_wand_appearances.insert("tin wand");
-	_wand_appearances.insert("brass wand");
-	_wand_appearances.insert("iridium wand");
-	_wand_appearances.insert("zinc wand");
-	_wand_appearances.insert("aluminum wand");
-	_wand_appearances.insert("uranium wand");
-	_wand_appearances.insert("steel wand");
+	_wand_appearances.push_back("marble wand");
+	_wand_appearances.push_back("glass wand");
+	_wand_appearances.push_back("crystal wand");
+	_wand_appearances.push_back("balsa wand");
+	_wand_appearances.push_back("maple wand");
+	_wand_appearances.push_back("oak wand");
+	_wand_appearances.push_back("pine wand");
+	_wand_appearances.push_back("ebony wand");
+	_wand_appearances.push_back("runed wand");
+	_wand_appearances.push_back("copper wand");
+	_wand_appearances.push_back("silver wand");
+	_wand_appearances.push_back("platinum wand");
+	_wand_appearances.push_back("iron wand");
+	_wand_appearances.push_back("long wand");
+	_wand_appearances.push_back("short wand");
+	_wand_appearances.push_back("curved wand");
+	_wand_appearances.push_back("forked wand");
+	_wand_appearances.push_back("hexagonal wand");
+	_wand_appearances.push_back("spiked wand");
+	_wand_appearances.push_back("jeweled wand");
+	_wand_appearances.push_back("tin wand");
+	_wand_appearances.push_back("brass wand");
+	_wand_appearances.push_back("iridium wand");
+	_wand_appearances.push_back("zinc wand");
+	_wand_appearances.push_back("aluminum wand");
+	_wand_appearances.push_back("uranium wand");
+	_wand_appearances.push_back("steel wand");
 }
 
 const std::map<const std::string, const Wand*>& Wand::items() {
 	return _wands;
 }
 
-const std::vector<const std::string>& Wand::appearances() {
+const std::vector<std::string>& Wand::appearances() {
 	return _wand_appearances;
 }
 
