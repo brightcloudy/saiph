@@ -28,9 +28,10 @@ namespace data {
 		int maximumCharges() const;
 		int zapType() const;
 		const std::string& engraveMessage() const; //returns "" if no message
+		bool autoidentifiesOnEngraving() const; //true if the wand auto-identifies after engraving with it
 
 	protected:
-		Wand(const std::string& name, int cost, int material, int maximum_charges, int zap_type, const std::string& engrave_message, unsigned long long properties);
+		Wand(const std::string& name, int cost, int material, int maximum_charges, int zap_type, const std::string& engrave_message, bool autoidentifies_on_engrave, unsigned long long properties);
 
 		static void addToMap(const std::string& name, const Wand* wand);
 
@@ -38,11 +39,12 @@ namespace data {
 		static std::map<const std::string, const Wand*> _wands;
 		static std::vector<std::string> _wand_appearances;
 
-		static void create(const std::string& name, int cost, int material, int maximum_charges, int zap_type, const std::string& engrave_message, unsigned long long properties);
+		static void create(const std::string& name, int cost, int material, int maximum_charges, int zap_type, const std::string& engrave_message, bool autoidentifies_on_engrave, unsigned long long properties);
 
 		const int _maximum_charges;
 		const int _zap_type;
 		const std::string _engrave_message;
+		const bool _autoidentifies_on_engrave;
 	};
 }
 
