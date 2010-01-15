@@ -109,7 +109,7 @@ namespace analyzer {
 					if (i->second.erase(item) && _one_to_one_mapping && i->second.size() == 1)
 						set(i->first, *(i->second.begin()));
 
-			checkIdentityOnlyPossibleForOneAppearance(appearance);
+			checkIdentityOnlyPossibleForOneAppearance();
 		}
 
 		/*
