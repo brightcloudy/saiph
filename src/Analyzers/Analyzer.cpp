@@ -17,6 +17,7 @@
 #include "Analyzers/MonsterInfo.h"
 #include "Analyzers/Shop.h"
 #include "Analyzers/Vault.h"
+#include "Analyzers/Wand.h"
 #include "Analyzers/Weapon.h"
 #include "World.h"
 
@@ -52,6 +53,7 @@ void Analyzer::init() {
 	_analyzers.push_back(new MonsterInfo());
 	_analyzers.push_back(new Shop());
 	_analyzers.push_back(new Vault());
+	_analyzers.push_back(new Wand());
 	_analyzers.push_back(new Weapon());
 
 	for (std::vector<Analyzer*>::iterator a = _analyzers.begin(); a != _analyzers.end(); ++a)
