@@ -18,7 +18,7 @@ using namespace event;
 using namespace std;
 
 /* constructors/destructor */
-Wand::Wand() : Tracker<data::Wand>("Wand"), _state(WAND_STATE_PREPARE), _wand_key(0), _stored_messages("") {
+Wand::Wand() : Tracker<data::Wand>("Wand"), _state(WAND_STATE_PREPARE), _wand_key(0) {
 	EventBus::registerEvent(ChangedInventoryItems::ID, this);
 	EventBus::registerEvent(ReceivedItems::ID, this);
 	EventBus::registerEvent(WantItems::ID, this);
@@ -60,21 +60,23 @@ void Wand::analyze() {
 
 void Wand::parseMessages(const string& messages) {
 	Tracker<data::Wand>::parseMessages(messages);
+}
 
-	if (_state == WAND_STATE_ENGRAVE_WITH_WAND) {
-		_stored_messages += messages;
-		Debug::notice() << WAND_DEBUG_NAME << "Stored: " << messages << "; stored messages now are: " << _stored_messages << std::endl;
-	} else if (_state == WAND_STATE_PARSE_MESSAGES) {
-		_stored_messages += messages;
+void Wand::actionCompleted(const string& messages) {
+	if (_state == WAND_STATE_DUST_E) {
+		_state = WAND_STATE_ENGRAVE_WITH_WAND;
+		Debug::notice() << WAND_DEBUG_NAME << "Dusted E, now trying to engrave with wand" << std::endl;
+	} else if (_state == WAND_STATE_ENGRAVE_WITH_WAND) {
+		Debug::notice() << WAND_DEBUG_NAME << "Engraved with wand, will now parse messages" << std::endl;
+
 		const string& appearance = Inventory::items()[_wand_key].name();
-
-		Debug::notice() << WAND_DEBUG_NAME << "Trying to identify " << appearance << ", messages are: " << _stored_messages << std::endl;
+		Debug::notice() << WAND_DEBUG_NAME << "Trying to identify " << appearance << ", messages are: " << messages << std::endl;
 
 		bool called_constrain = false;
 		for (map<const string, std::set<const data::Wand*> >::const_iterator i = _engrave_groups.begin(); i != _engrave_groups.end(); i++) {
 			if (i->first == "")
 				continue;
-			if (_stored_messages.find(i->first) != string::npos) {
+			if (messages.find(i->first) != string::npos) {
 				if (i->second.size() == 1)
 					set(appearance, *(i->second.begin()));
 				else
@@ -90,18 +92,7 @@ void Wand::parseMessages(const string& messages) {
 
 		_unidentified_wands.erase(_wand_key);
 		_wand_key = 0;
-		_stored_messages = "";
 		_state = WAND_STATE_PREPARE;
-	}
-}
-
-void Wand::actionCompleted() {
-	if (_state == WAND_STATE_DUST_E) {
-		_state = WAND_STATE_ENGRAVE_WITH_WAND;
-		Debug::notice() << WAND_DEBUG_NAME << "Dusted E, now trying to engrave with wand" << std::endl;
-	} else if (_state == WAND_STATE_ENGRAVE_WITH_WAND) {
-		Debug::notice() << WAND_DEBUG_NAME << "Engraved with wand, will now parse messages" << std::endl;
-		_state = WAND_STATE_PARSE_MESSAGES;
 	}
 }
 

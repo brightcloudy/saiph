@@ -24,7 +24,7 @@ namespace analyzer {
 
 		virtual void parseMessages(const std::string& messages);
 		virtual void analyze();
-		virtual void actionCompleted();
+		virtual void actionCompleted(const std::string& messages);
 		virtual void actionFailed();
 		virtual void onEvent(event::Event* const event);
 	private:
@@ -35,9 +35,6 @@ namespace analyzer {
 		std::set<unsigned char> _unidentified_wands;
 		int _state;
 		unsigned char _wand_key;
-		//some messages come before the what-to-engrave prompt, some after
-		//so we store the before-prompt ones in this
-		std::string _stored_messages;
 
 		bool engraveUseful(const std::string& appearance);
 //		bool zapUseful(const std::string& appearance);
