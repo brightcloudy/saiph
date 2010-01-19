@@ -93,6 +93,10 @@ namespace analyzer {
 		 * Appearance is item.
 		 */
 		void set(const std::string& appearance, const ItemType* item) {
+			if (_identified_appearances.find(appearance) != _identified_appearances.end())
+				return; //already did this for this appearance
+
+			_identified_appearances.insert(appearance);
 			//add it to the name queue
 			_name_queue.insert(appearance);
 
@@ -170,6 +174,14 @@ namespace analyzer {
 		typedef typename std::map<const std::string, std::set<const ItemType*> >::const_iterator map_ci;
 		typedef typename std::map<const std::string, std::set<const ItemType*> >::iterator map_i;
 		typedef typename std::set<const ItemType*>::const_iterator set_ci;
+		/*
+		 * A set containing appearances that we've already called set() on.
+		 * Without this, we go "hey there's only one possibility here! set().
+		 * there's only one possibility here! set()." over and over.
+		 *
+		 * There's probably a better way to do this.
+		 */
+		std::set<std::string> _identified_appearances;
 
 		/*
 		 * All identities must have an appearance, so if an identity is only
