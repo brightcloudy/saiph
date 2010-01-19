@@ -3,6 +3,7 @@
 
 #include "Actions/Call.h"
 #include "Analyzers/Analyzer.h"
+#include "Debug.h"
 #include "EventBus.h"
 #include "Events/PriceLearned.h"
 #include "Item.h"
@@ -97,6 +98,8 @@ namespace analyzer {
 				return; //already did this for this appearance
 
 			_identified_appearances.insert(appearance);
+
+			Debug::notice() << debugName() << "Identified " << appearance << " as " << item->name() << std::endl;
 			//add it to the name queue
 			_name_queue.insert(appearance);
 
@@ -121,6 +124,7 @@ namespace analyzer {
 		 */
 		void ruleOut(const std::string& appearance, const ItemType* item) {
 			if (_possible_identities[appearance].erase(item)) {
+				Debug::notice() << debugName() << "Ruled out " << appearance << " for " << item->name() << std::endl;
 				if (_one_to_one_mapping && _possible_identities[appearance].size() == 1)
 					set(appearance, *(_possible_identities[appearance].begin()));
 				
@@ -135,6 +139,7 @@ namespace analyzer {
 		 * for the ambiguous wand engrave messages etc.
 		 */
 		void constrainWithin(const std::string& appearance, const std::set<const ItemType*>& set) {
+			Debug::notice() << debugName() << "Constrained " << appearance << " to be in " << stringizeSet(set) << std::endl;
 			std::set<const ItemType*> toBeRuledOut = complement(set);
 			for (set_ci i = toBeRuledOut.begin(); i != toBeRuledOut.end(); i++)
 				ruleOut(appearance, *i);
@@ -220,6 +225,24 @@ namespace analyzer {
 			for (set_ci i = set.begin(); i != set.end(); i++)
 				result.erase(*i);
 			return result;
+		}
+
+		std::string stringizeSet(const std::set<const ItemType*>& set) {
+			set_ci i = set.begin();
+			std::string retval = "["+(*i)->name();
+			++i;
+			while (i != set.end()) {
+				retval += ", ";
+				retval += (*i)->name();
+				++i;
+			}
+			retval += "]";
+			return retval;
+		}
+
+		//so we can tell our instantiations apart
+		std::string debugName() {
+			return std::string("Tracker")+ItemType::items().begin()->second->category()+"] ";
 		}
 	};
 
