@@ -564,6 +564,10 @@ void World::run() {
 					break;
 				}
 			}
+		} else {
+			//let the analyzer currently executing an action parse messages
+			if (prev_analyzer)
+				prev_analyzer->parseMessages(_messages);
 		}
 
 		/* check if we got a command */
