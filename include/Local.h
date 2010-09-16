@@ -3,7 +3,7 @@
 /* debug */
 #define LOCAL_DEBUG_NAME "Local] "
 /* buffer */
-#define READ_LIMIT 4095
+#define READ_LIMIT 8191
 #define BUFFER_SIZE 65536
 /* local */
 #define LOCAL_NETHACK "/usr/games/nethack"

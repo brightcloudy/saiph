@@ -164,7 +164,7 @@ void Health::onEvent(event::Event * const event) {
 				continue;
 			}
 			map<unsigned char, Item>::iterator u = Inventory::items().find(_unihorn_key);
-			if (u == Inventory::items().end() || u->second.beatitude() == UNCURSED)
+			if (u == Inventory::items().end() || u->second.beatitude() != CURSED)
 				_unihorn_key = i->first;
 		}
 	} else if (event->id() == ReceivedItems::ID) {
@@ -177,12 +177,16 @@ void Health::onEvent(event::Event * const event) {
 				EventBus::broadcast(&b);
 			} else if (i->second.beatitude() != CURSED) {
 				map<unsigned char, Item>::iterator u = Inventory::items().find(_unihorn_key);
-				if (u == Inventory::items().end() || u->second.beatitude() == UNCURSED)
+				if (u == Inventory::items().end() || u->second.beatitude() != CURSED)
 					_unihorn_key = i->first;
 			}
 		}
 	} else if (event->id() == WantItems::ID) {
 		WantItems* e = static_cast<WantItems*> (event);
+	    /* Do not pickup another unihorn if you already have one 
+		Following won't work, as it will drop unihorns on stashes.
+		if (_unihorn_key != ILLEGAL_ITEM)
+		    return; */
 		for (map<unsigned char, Item>::iterator i = e->items().begin(); i != e->items().end(); ++i) {
 			if (i->second.beatitude() == CURSED || data::UnicornHorn::unicornHorns().find(i->second.name()) == data::UnicornHorn::unicornHorns().end())
 				continue; // cursed or not an unihorn

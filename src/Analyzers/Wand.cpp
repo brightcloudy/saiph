@@ -50,7 +50,6 @@ Wand::Wand(Saiph* saiph) : Analyzer("Wand"), saiph(saiph), wand_key(0), state(WA
 
 /* methods */
 void Wand::analyze() {
-
 }
 
 void Wand::parseMessages(const string& messages) {
@@ -118,6 +117,16 @@ void Wand::parseMessages(const string& messages) {
 			saiph->request(req);
 			wand_key = 0;
 			state = WAND_STATE_INIT;
+		} else if (messages.find(WAND_POLYMORPH_MESSAGE, 0) != string::npos) {
+			string name = WAND_POLYMORPH_NAME;
+			for (vector<pair<string, string> >::size_type i = 0; i < wand_engrave_messages.size(); i++)
+				if (messages.find(wand_engrave_messages[i].first, 0) != string::npos)
+					name = wand_engrave_messages[i].second;
+			req.request = REQUEST_CALL_ITEM;
+			req.data = name;
+			req.key = wand_key;
+			saiph->request(req);
+			state = WAND_STATE_WANT_DIRTY_INVENTORY;
 		} else if (messages.find(MESSAGE_ENGRAVE_DUST, 0) != string::npos ||
 				messages.find(MESSAGE_ENGRAVE_DUST_ADD, 0) != string::npos ||
 				messages.find(MESSAGE_ENGRAVE_FROST, 0) != string::npos ||

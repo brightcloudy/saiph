@@ -19,6 +19,8 @@ Explore::Explore() : Analyzer("Explore") {
 	EventBus::registerEvent(TakeMeThere::ID, this);
 }
 
+/* TODO: Something about floating eyes (Consider the path blocked for a give time? What if there
+ * are no other path? */
 /* methods */
 void Explore::analyze() {
 	if (Saiph::blind() || Saiph::confused() || Saiph::hallucinating() || Saiph::stunned())

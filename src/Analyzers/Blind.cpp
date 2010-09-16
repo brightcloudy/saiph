@@ -25,6 +25,7 @@ void Blind::parseMessages(const string& messages) {
 	}
 }
 
+/* TODO: Do not use unihorn if blind while engulfed */
 void Blind::analyze() {
 	if (saiph->inventory_changed)
 		findBlindingTool();
