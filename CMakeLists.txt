@@ -94,6 +94,7 @@ set(HEADER_FILES
 	include/Analyzers/Shop.h
 	include/Analyzers/Sokoban.h
 #	include/Analyzers/Throne.h
+	include/Analyzers/Tracker.h
 	include/Analyzers/Vault.h
 	include/Analyzers/Wand.h
 	include/Analyzers/Weapon.h
@@ -129,6 +130,7 @@ set(HEADER_FILES
 #	include/Data/Level.h
 	include/Data/Longsword.h
 	include/Data/Mace.h
+	include/Data/Material.h
 	include/Data/Monster.h
 	include/Data/MorningStar.h
 	include/Data/Pickaxe.h
@@ -148,6 +150,7 @@ set(HEADER_FILES
 	include/Data/Trident.h
 	include/Data/TwoHandedSword.h
 	include/Data/UnicornHorn.h
+	include/Data/Wand.h
 	include/Data/Weapon.h
 	include/Data/Whip.h
 	# Events
@@ -265,6 +268,7 @@ set(SOURCE_FILES
 	src/Data/Trident.cpp
 	src/Data/TwoHandedSword.cpp
 	src/Data/UnicornHorn.cpp
+	src/Data/Wand.cpp
 	src/Data/Weapon.cpp
 	src/Data/Whip.cpp
 	# Events

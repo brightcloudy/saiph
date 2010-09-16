@@ -86,3 +86,8 @@ void Analyzer::actionCompleted() {
 
 void Analyzer::actionFailed() {
 }
+
+void Analyzer::actionCompleted(const std::string&) {
+	//default to the parameter-less overload
+	actionCompleted();
+}

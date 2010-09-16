@@ -4,26 +4,11 @@
 #include <string>
 #include <vector>
 #include "Item.h"
-#include "Request.h"
 #include "Analyzers/Analyzer.h"
+#include "Analyzers/Tracker.h"
+#include "Data/Wand.h"
 
-#define WAND_DEBUG_NAME "Wand] "
-
-/* these don't auto-id; we must actually engrave */
-#define WAND_VANISHER_MESSAGE "  The engraving on the floor vanishes!  "
-#define WAND_COLD_MESSAGE "  A few ice cubes drop from the wand.  "
-#define WAND_SLEEP_DEATH_MESSAGE "  The bugs on the floor stop moving!  "
-#define WAND_MAGIC_MISSILE_MESSAGE "  The floor is riddled by bullet holes!  "
-#define WAND_POLYMORPH_MESSAGE "  The engraving now reads: " //followed by random rumor
-#define WAND_SLOW_MONSTER_MESSAGE "  The bugs on the floor slow down!  "
-#define WAND_SPEED_MONSTER_MESSAGE "  The bugs on the floor speed up!  "
-#define WAND_STRIKING_MESSAGE "  The wand unsuccessfully fights your attempt to write!  "
-/* these auto-id before the engrave prompt, so cancel the engraving */
-#define WAND_DIGGING_MESSAGE " is a wand of digging!  "
-#define WAND_LIGHTNING_MESSAGE " is a wand of lightning!  "
-#define WAND_FIRE_MESSAGE " is a wand of fire!  "
-
-#define WAND_WORN_OUT_MESSAGE "  You wrest one last charge from the worn-out wand.  "
+#define PRIORITY_WAND_ENGRAVE_IDENTIFY 200
 
 #define WAND_POLYMORPH_NAME "wand of polymorph"
 #define WAND_VANISHER_NAME "wand of vanishing"
@@ -37,26 +22,35 @@
 #define WAND_STATE_ENGRAVING 3
 #define WAND_STATE_READY_TO_NAME 4
 #define WAND_STATE_WANT_DIRTY_INVENTORY 5
+#define WAND_DEBUG_NAME "Wand] "
 
-class Saiph;
+#define WAND_STATE_PREPARE 0
+#define WAND_STATE_DUST_E 1
+#define WAND_STATE_ENGRAVE_WITH_WAND 2
+#define WAND_STATE_PARSE_MESSAGES 3
 
 namespace analyzer {
-	class Wand : public Analyzer {
+	class Wand : public Tracker<data::Wand> {
 	public:
-		Wand(Saiph* saiph);
+		Wand();
 
-		void analyze();
-		void parseMessages(const std::string& messages);
+		virtual void parseMessages(const std::string& messages);
+		virtual void analyze();
+		virtual void actionCompleted(const std::string& messages);
+		virtual void actionFailed();
+		virtual void onEvent(event::Event* const event);
 	private:
-		Saiph* saiph;
-		Request req;
-		unsigned char wand_key;
-		int state;
-		std::vector<std::string> wand_appearances;
-		std::vector<std::pair<std::string, std::string> > wand_engrave_messages;
-		void findUnidentifiedWands();
-		bool isUnidentifiedWand(const Item& i);
-		bool isUnidentifiedWand(const unsigned char& c);
+		std::map<const std::string, std::set<const data::Wand*> > _engrave_groups;
+//		std::map<const int, std::set<const data::Wand*> > _zap_type_groups;
+		//the inventory letters of unidentified wands in our inventory
+		//TODO: when zap-type ID is implemented, change this to _engrave_useful_wands
+		std::set<unsigned char> _unidentified_wands;
+		int _state;
+		unsigned char _wand_key;
+
+		bool engraveUseful(const std::string& appearance);
+//		bool zapUseful(const std::string& appearance);
+		void refreshUnidentifiedWands();
 	};
 }
 #endif
