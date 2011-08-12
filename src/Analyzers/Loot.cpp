@@ -201,8 +201,71 @@ public:
 
 // Corollary: Global optimization is independant of the order in which piles are visited, or how items are initially divided into piles.
 
-// static void _optimize_partition(vector<int>& out, const vector<const Item*>& possibilities) {
-// 	vector<InventoryValuator*> valuators;
-// 
-// 	// push back valuators for all analyzers
-// }
+
+
+static void _get_valuators(vector<InventoryValuator*>& valuators) {
+	// Get zero or more from each analyzer; Loot's own valuator(s) will handle encumbrance and other limits
+}
+
+static int _valuate(vector<InventoryValuator*>& valuators, const Item* item, bool save) {
+	int res = 0;
+	for (vector<InventoryValuator*>::iterator vi = valuators.begin(); vi != valuators.end(); ++vi)
+		res += (*vi)->addItem(*item, save);
+	return res;
+}
+
+// This function implements Part() in the above description for a general set of items.
+// It assumes that picking up a gold piece will never make another item more valuable
+// This tries to be systematically biased to break ties in favor of items earlier in the list.  We might need a more formal tiebreak procedure.
+static void _optimize_partition(vector<int>& out, const vector<pair<int,const Item*> >& possibilities) {
+	vector<InventoryValuator*> valuators;
+	_get_valuators(valuators);
+
+	int score = 0;
+	out.resize(possibilities.size());
+	fill(out.begin(), out.end(), 0);
+
+	while (true) {
+		int bestscore = score;
+		int bestnext  = -1;
+		int sndscore  = score;
+		int sndnext   = -1;
+
+		for (int i = 0; i < int(possibilities.size()); ++i) {
+			if (possibilities[i].first == out[i])
+				continue; // we already have all of this item
+			int candscore = _valuate(valuators, possibilities[i].second, false);
+			if (candscore > bestscore) {
+				sndscore  = bestscore;
+				sndnext   = bestnext;
+				bestscore = candscore;
+				bestnext  = i;
+			} else if (candscore > sndscore) {
+				sndscore  = candscore;
+				sndnext   = i;
+			}
+		}
+
+		if (bestnext < 0)
+			break; // nothing left useful to add
+
+		if (possibilities[bestnext].second->name() == "gold piece") {
+			// Since the inventory will often be 98% gold pieces or so, we want to treat them as efficiently as we can.  Since we've assumed that
+			// gold pieces can never raise the value of other items, we keep adding gold pieces until the marginal utility is less than the
+			// original second best marginal utility.
+			int sndmarg = sndscore - score;
+
+			do {
+				out[bestnext]++;
+				score = _valuate(valuators, possibilities[bestnext].second, true);
+
+				bestscore = _valuate(valuators, possibilities[bestnext].second, false);
+			} while (out[bestnext] < possibilities[bestnext].first &&
+					((bestscore - score) > sndmarg || ((bestscore - score) == sndmarg && bestnext < sndnext)));
+		} else {
+			// No assumptions made so we can only add one before reentering the selection loop
+			out[bestnext]++;
+			score = _valuate(valuators, possibilities[bestnext].second, true);
+		}
+	}
+}
