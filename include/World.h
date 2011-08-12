@@ -60,6 +60,7 @@ public:
 	static void destroy();
 	static void registerAnalyzer(analyzer::Analyzer* const analyzer);
 	static void unregisterAnalyzer(analyzer::Analyzer* const analyzer);
+	static const std::vector<analyzer::Analyzer*>& analyzers();
 	static void registerDrawFunc(char key, drawfunc fnc, void* cookie);
 	static bool setAction(action::Action* action, bool deleteAction = true);
 	static bool queueAction(action::Action* action);

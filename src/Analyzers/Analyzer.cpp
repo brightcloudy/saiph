@@ -90,6 +90,9 @@ void Analyzer::parseMessages(const std::string&) {
 void Analyzer::analyze() {
 }
 
+void Analyzer::createValuators(std::vector<InventoryValuator*>&) {
+}
+
 void Analyzer::lastChance(action::Action* const) {
 }
 

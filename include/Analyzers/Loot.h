@@ -3,6 +3,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 #include "Coordinate.h"
 #include "Analyzers/Analyzer.h"
 
@@ -12,6 +13,8 @@
 namespace event {
 	class Event;
 }
+
+class Item;
 
 namespace analyzer {
 
@@ -25,6 +28,10 @@ namespace analyzer {
 
 	private:
 		std::set<Coordinate> _visit;
+
+		void getValuators(std::vector<InventoryValuator*>& valuators);
+		int valuate(std::vector<InventoryValuator*>& valuators, const Item& item, bool save);
+		void optimizePartition(std::vector<int>& out, const std::vector<std::pair<int,Item> >& possibilities, std::vector<bool>* spectator_out, const std::vector<Item>* spectators);
 	};
 }
 #endif

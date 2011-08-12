@@ -146,19 +146,6 @@ void Loot::onEvent(Event* const event) {
 	}
 }
 
-// Interface for analyzers to communicate desire for items.
-// An InventoryValuator instance tracks an "incomplete inventory" and assigns a value to it.
-// At creation, the valuator represents an empty inventory with a value of 0.
-// Items are added one at a time using addItem, which should return the new value; if save is false, then the valuator's state should be unchanged, allowing items to be tested for value.
-// The sum of all used valuators is used to determine composite inventory value; Loot aims to maximize this value.
-class InventoryValuator {
-public:
-	InventoryValuator();
-	virtual ~InventoryValuator();
-
-	virtual int addItem(const Item& i, bool save) = 0;
-};
-
 // This is the heart of the new (Aug 2011) inventory manager.  Given a set of items known to exist, it tries to find the best combination for us to carry, using a greedy hill-climbing algorithm.
 // It starts with an empty imaginary inventory, and at each step adds the item that gives the largest benefit, stopping when no item gives a benefit.
 
@@ -201,13 +188,13 @@ public:
 
 // Corollary: Global optimization is independant of the order in which piles are visited, or how items are initially divided into piles.
 
-
-
-static void _get_valuators(vector<InventoryValuator*>& valuators) {
+void Loot::getValuators(vector<InventoryValuator*>& valuators) {
 	// Get zero or more from each analyzer; Loot's own valuator(s) will handle encumbrance and other limits
+	for (vector<Analyzer*>::const_iterator ai = World::analyzers().begin(); ai != World::analyzers().end(); ++ai)
+		(*ai)->createValuators(valuators);
 }
 
-static int _valuate(vector<InventoryValuator*>& valuators, const Item& item, bool save) {
+int Loot::valuate(vector<InventoryValuator*>& valuators, const Item& item, bool save) {
 	int res = 0;
 	for (vector<InventoryValuator*>::iterator vi = valuators.begin(); vi != valuators.end(); ++vi)
 		res += (*vi)->addItem(item, save);
@@ -218,9 +205,9 @@ static int _valuate(vector<InventoryValuator*>& valuators, const Item& item, boo
 // It assumes that picking up a gold piece will never make another item more valuable
 // This tries to be systematically biased to break ties in favor of items earlier in the list.  We might need a more formal tiebreak procedure.
 // If spectators is non-null it points to a vector of items which are to be tested for relevance; spectator_out[i] = true iff Part(I \cup spectators[i]) != Part(I)
-static void _optimize_partition(vector<int>& out, const vector<pair<int,Item> >& possibilities, vector<bool>* spectator_out, const vector<Item>* spectators) {
+void Loot::optimizePartition(vector<int>& out, const vector<pair<int,Item> >& possibilities, vector<bool>* spectator_out, const vector<Item>* spectators) {
 	vector<InventoryValuator*> valuators;
-	_get_valuators(valuators);
+	getValuators(valuators);
 
 	int score = 0;
 	out.resize(possibilities.size());
@@ -240,7 +227,7 @@ static void _optimize_partition(vector<int>& out, const vector<pair<int,Item> >&
 		for (int i = 0; i < int(possibilities.size()); ++i) {
 			if (possibilities[i].first == out[i])
 				continue; // we already have all of this item
-			int candscore = _valuate(valuators, possibilities[i].second, false);
+			int candscore = valuate(valuators, possibilities[i].second, false);
 			if (candscore > bestscore) {
 				sndscore  = bestscore;
 				sndnext   = bestnext;
@@ -254,7 +241,7 @@ static void _optimize_partition(vector<int>& out, const vector<pair<int,Item> >&
 
 		if (spectators) {
 			for (int i = 0; i < int(spectators->size()); ++i) {
-				int specscore = _valuate(valuators, (*spectators)[i], false);
+				int specscore = valuate(valuators, (*spectators)[i], false);
 				if (specscore > bestscore)
 					(*spectator_out)[i] = true;
 				else if (specscore > sndscore) {
@@ -275,15 +262,15 @@ static void _optimize_partition(vector<int>& out, const vector<pair<int,Item> >&
 
 			do {
 				out[bestnext]++;
-				score = _valuate(valuators, possibilities[bestnext].second, true);
+				score = valuate(valuators, possibilities[bestnext].second, true);
 
-				bestscore = _valuate(valuators, possibilities[bestnext].second, false);
+				bestscore = valuate(valuators, possibilities[bestnext].second, false);
 			} while (out[bestnext] < possibilities[bestnext].first &&
 					((bestscore - score) > sndmarg || ((bestscore - score) == sndmarg && bestnext < sndnext)));
 		} else {
 			// No assumptions made so we can only add one before reentering the selection loop
 			out[bestnext]++;
-			score = _valuate(valuators, possibilities[bestnext].second, true);
+			score = valuate(valuators, possibilities[bestnext].second, true);
 		}
 	}
 

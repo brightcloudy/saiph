@@ -14,7 +14,21 @@ namespace action {
 	class Action;
 }
 
+class Item;
+
 namespace analyzer {
+	// Interface for analyzers to communicate desire for items.
+	// An InventoryValuator instance tracks an "incomplete inventory" and assigns a value to it.
+	// At creation, the valuator represents an empty inventory with a value of 0.
+	// Items are added one at a time using addItem, which should return the new value; if save is false, then the valuator's state should be unchanged, allowing items to be tested for value.
+	// The sum of all used valuators is used to determine composite inventory value; Loot aims to maximize this value.
+	class InventoryValuator {
+	public:
+		InventoryValuator();
+		virtual ~InventoryValuator();
+
+		virtual int addItem(const Item& i, bool save) = 0;
+	};
 
 	class Analyzer {
 	public:
@@ -27,6 +41,7 @@ namespace analyzer {
 		virtual void parseMessages(const std::string&);
 		virtual void analyze();
 		virtual void lastChance(action::Action* const);
+		virtual void createValuators(std::vector<InventoryValuator*>& into);
 		virtual void onEvent(event::Event* const);
 		virtual void actionCompleted(const std::string& messages);
 		virtual void actionFailed();

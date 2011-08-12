@@ -224,6 +224,10 @@ void World::registerAnalyzer(Analyzer* const analyzer) {
 	_analyzers.push_back(analyzer);
 }
 
+const vector<Analyzer*>& World::analyzers() {
+	return _analyzers;
+}
+
 void World::registerDrawFunc(char key, drawfunc fnc, void* cookie) {
 	_draw_funcs[key] = make_pair(cookie, fnc);
 }
