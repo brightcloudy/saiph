@@ -268,4 +268,7 @@ static void _optimize_partition(vector<int>& out, const vector<pair<int,const It
 			score = _valuate(valuators, possibilities[bestnext].second, true);
 		}
 	}
+
+	for (vector<InventoryValuator*>::iterator it = valuators.begin(); it != valuators.end(); ++it)
+		delete *it;
 }
