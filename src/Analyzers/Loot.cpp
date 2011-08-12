@@ -145,3 +145,64 @@ void Loot::onEvent(Event* const event) {
 		}
 	}
 }
+
+// Interface for analyzers to communicate desire for items.
+// An InventoryValuator instance tracks an "incomplete inventory" and assigns a value to it.
+// At creation, the valuator represents an empty inventory with a value of 0.
+// Items are added one at a time using addItem, which should return the new value; if save is false, then the valuator's state should be unchanged, allowing items to be tested for value.
+// The sum of all used valuators is used to determine composite inventory value; Loot aims to maximize this value.
+class InventoryValuator {
+public:
+	InventoryValuator();
+	virtual ~InventoryValuator();
+
+	virtual int addItem(const Item& i, bool save) = 0;
+};
+
+// This is the heart of the new (Aug 2011) inventory manager.  Given a set of items known to exist, it tries to find the best combination for us to carry, using a greedy hill-climbing algorithm.
+// It starts with an empty imaginary inventory, and at each step adds the item that gives the largest benefit, stopping when no item gives a benefit.
+
+// The fundamental property of this algorithm is:
+// Theorem 1.  If A = B \cup C and Part(D) = D, then Part(A \cup D) = D if and only if Part(B \cup D) = D and Part(C \cup D) = D
+// (for the purposes of these proofs, Part(X) can be considered to return an ordered list)
+
+// Proof(if): If Part(A \cup D) != D, then at some step either an item must be chosen which is not in D, or the algorithm must terminate early.  Early termination would contradict the
+// assumption that Part(D) = D.  If a different item is chosen, then it must be in A, and therefore must be in B or C; without loss of generality assume B.  During the execution of
+// Part(B \cup D), at the same step, the same item is available; since it gave the largest improvement in A \cup D, it must also be the largest in the smaller set B \cup D, and
+// it must be included, violating the assumption that Part(B \cup D) = D.  As all cases lead to a contradiction, QED.
+
+// Proof(only if): The argument is similar.  Without loss of generality, assume Part(B \cup D) != D; then, the first item in the result not in D is definitely also in A, and since
+// the corresponding element in D is not the highest in B \cup D, it cannot be the highest in A \cup D, contradicting the assumption that Part(A \cup D) = D.
+
+// Definition.  Saiph cares about a pile P if Part(I \cup P) != I, where I is Saiph's inventory.
+
+// Corollary.  Saiph cares about a pile if and only if she cares about at least one of its items, considered as a singleton pile.
+
+// Definition.  The termination order on partition results is the lexicographic order on intermediate scores.
+
+// Theorem 2. Part(A \cup B) >= Part(B) in the termination order.
+
+// Proof: If Part(A \cup B) < Part(B), then there would have to be a step where Part(A \cup B) takes a smaller item; but this is not possible as A \cup B is the larger set and
+// must have a smaller maximum.
+
+// Corollary.  Saiph cares about a pile if and only if Part(I \cup P) > Part(P).
+
+// Definition:  "Global optimization" is an algorithm where Saiph, at each step, visits some pile she cares about and sets I = Part(I \cup P).
+
+// Theorem 3. "Global optimization" always terminates (no infinite loops).
+
+// Proof: At each step I increases in the termination order.  But I is defined on a finite universe with size \sum_{i=0}^{52} i \choose N, where N is the number of items in the game
+// (XXX it's actually a bit higher if we use bags, but still finite), so there are no infinite increasing sequences.
+
+// Theorem 4.: "Global optimization" ends with I = Part(U) where U = I_0 \cup \bigcup_{0 \leq i < N} P_i.
+
+// Proof: Let F = U - I.  If I != Part(U), then I != Part(I \cup F), and therefore by iterative application of Theorem 1 there exists an item x \in F such that I != Part(I \cup x).
+// x is necessarily in some pile P_i; by Corollary 1.1 P_i is an interesting pile, contradicting the assumption that global optimization was complete.
+
+// Corollary: Global optimization is independant of the order in which piles are visited, or how items are initially divided into piles.
+
+// static void _optimize_partition(vector<int>& out, const vector<const Item*>& possibilities) {
+// 	vector<InventoryValuator*> valuators;
+// 
+// 	// push back valuators for all analyzers
+// }
