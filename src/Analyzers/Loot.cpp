@@ -207,23 +207,29 @@ static void _get_valuators(vector<InventoryValuator*>& valuators) {
 	// Get zero or more from each analyzer; Loot's own valuator(s) will handle encumbrance and other limits
 }
 
-static int _valuate(vector<InventoryValuator*>& valuators, const Item* item, bool save) {
+static int _valuate(vector<InventoryValuator*>& valuators, const Item& item, bool save) {
 	int res = 0;
 	for (vector<InventoryValuator*>::iterator vi = valuators.begin(); vi != valuators.end(); ++vi)
-		res += (*vi)->addItem(*item, save);
+		res += (*vi)->addItem(item, save);
 	return res;
 }
 
 // This function implements Part() in the above description for a general set of items.
 // It assumes that picking up a gold piece will never make another item more valuable
 // This tries to be systematically biased to break ties in favor of items earlier in the list.  We might need a more formal tiebreak procedure.
-static void _optimize_partition(vector<int>& out, const vector<pair<int,const Item*> >& possibilities) {
+// If spectators is non-null it points to a vector of items which are to be tested for relevance; spectator_out[i] = true iff Part(I \cup spectators[i]) != Part(I)
+static void _optimize_partition(vector<int>& out, const vector<pair<int,Item> >& possibilities, vector<bool>* spectator_out, const vector<Item>* spectators) {
 	vector<InventoryValuator*> valuators;
 	_get_valuators(valuators);
 
 	int score = 0;
 	out.resize(possibilities.size());
 	fill(out.begin(), out.end(), 0);
+
+	if (spectators) {
+		spectator_out->resize(spectators->size());
+		fill(spectator_out->begin(), spectator_out->end(), false);
+	}
 
 	while (true) {
 		int bestscore = score;
@@ -246,10 +252,22 @@ static void _optimize_partition(vector<int>& out, const vector<pair<int,const It
 			}
 		}
 
+		if (spectators) {
+			for (int i = 0; i < int(spectators->size()); ++i) {
+				int specscore = _valuate(valuators, (*spectators)[i], false);
+				if (specscore > bestscore)
+					(*spectator_out)[i] = true;
+				else if (specscore > sndscore) {
+					sndscore = specscore;
+					sndnext  = possibilities.size() + i; // never has priority over main-set items
+				}
+			}
+		}
+
 		if (bestnext < 0)
 			break; // nothing left useful to add
 
-		if (possibilities[bestnext].second->name() == "gold piece") {
+		if (possibilities[bestnext].second.name() == "gold piece") {
 			// Since the inventory will often be 98% gold pieces or so, we want to treat them as efficiently as we can.  Since we've assumed that
 			// gold pieces can never raise the value of other items, we keep adding gold pieces until the marginal utility is less than the
 			// original second best marginal utility.
