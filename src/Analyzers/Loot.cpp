@@ -18,6 +18,11 @@
 #include "Events/ItemsOnGround.h"
 #include "Events/WantItems.h"
 
+#define VALUE_GOLD_100   1000
+#define VALUE_GOLD_1K    4000
+#define VALUE_GOLD_10K   9000
+#define VALUE_WEIGHT_PEN 10 /* TODO: should be a sliding scale based on encumbrance */
+
 using namespace analyzer;
 using namespace event;
 using namespace std;
@@ -144,6 +149,66 @@ void Loot::onEvent(Event* const event) {
 			}
 		}
 	}
+}
+
+class LootInvValue : public InventoryValuator {
+public:
+	LootInvValue();
+	virtual ~LootInvValue() { }
+
+	virtual int addItem(const Item& item, bool save);
+private:
+	int _slots_used;
+	int _items_weight;
+	int _gold;
+	const Item* _slots[52];
+};
+
+LootInvValue::LootInvValue() : _slots_used(0), _items_weight(0), _gold(0) {
+	fill(_slots, _slots + 52, 0);
+}
+
+int LootInvValue::addItem(const Item& item, bool save) {
+	int reuse   = -1;
+	int newgold = _gold;
+	int newslot = _slots_used;
+	int newinvw = _items_weight;
+	bool overfull = false;
+	if (item.name() == "gold piece") {
+		newgold++;
+	} else {
+		for (reuse = 0; reuse < _slots_used; reuse++)
+			if ((*_slots[reuse]) == item)
+				break;
+		if (reuse != _slots_used) {
+			if (_slots_used == 52)
+				overfull = true;
+			else
+				_slots[_slots_used] = &item;
+			newslot++;
+		}
+		newinvw += item.weight();
+	}
+	int totalw = newinvw + (newgold + 50) / 100;
+	int value = 0;
+	if (newgold < 100)
+		value += (newgold * VALUE_GOLD_100) / 100;
+	else if (newgold < 1000)
+		value += VALUE_GOLD_100 + ((newgold - 100) * (VALUE_GOLD_1K - VALUE_GOLD_100)) / 900;
+	else if (newgold < 10000)
+		value += VALUE_GOLD_1K + ((newgold - 1000) * (VALUE_GOLD_10K - VALUE_GOLD_1K)) / 9000;
+	else
+		value += VALUE_GOLD_10K;
+
+	value -= VALUE_WEIGHT_PEN * totalw;
+	if (overfull) value = -100000000;
+
+	if (save) {
+		_slots_used = newslot;
+		_items_weight = newinvw;
+		_gold = newgold;
+	}
+	return value;
 }
 
 // This is the heart of the new (Aug 2011) inventory manager.  Given a set of items known to exist, it tries to find the best combination for us to carry, using a greedy hill-climbing algorithm.
