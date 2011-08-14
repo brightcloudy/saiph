@@ -22,12 +22,13 @@ namespace analyzer {
 	// At creation, the valuator represents an empty inventory with a value of 0.
 	// Items are added one at a time using addItem, which should return the new value; if save is false, then the valuator's state should be unchanged, allowing items to be tested for value.
 	// The sum of all used valuators is used to determine composite inventory value; Loot aims to maximize this value.
+	// already is the number of these items already added from the stack in question; we use this to estimate inventory slots used, conservatively assuming no new stacking
 	class InventoryValuator {
 	public:
 		InventoryValuator();
 		virtual ~InventoryValuator();
 
-		virtual int addItem(const Item& i, bool save) = 0;
+		virtual int addItem(const Item& i, int already, bool save) = 0;
 	};
 
 	class Analyzer {

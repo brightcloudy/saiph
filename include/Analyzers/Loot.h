@@ -28,12 +28,13 @@ namespace analyzer {
 		void analyze();
 		void parseMessages(const std::string& messages);
 		void onEvent(event::Event* const event);
+		virtual void createValuators(std::vector<InventoryValuator*>& to);
 
 	private:
 		std::set<Coordinate> _visit;
 
 		void getValuators(std::vector<InventoryValuator*>& valuators);
-		int valuate(std::vector<InventoryValuator*>& valuators, const Item& item, bool save);
+		int valuate(std::vector<InventoryValuator*>& valuators, const Item& item, int already, bool save);
 		void optimizePartition(std::vector<int>& out, const std::vector<std::pair<int,Item> >& possibilities, std::vector<bool>* spectator_out, const std::vector<Item>* spectators);
 	};
 }

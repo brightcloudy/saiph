@@ -156,38 +156,26 @@ public:
 	LootInvValue();
 	virtual ~LootInvValue() { }
 
-	virtual int addItem(const Item& item, bool save);
+	virtual int addItem(const Item& item, int already, bool save);
 private:
 	int _slots_used;
 	int _items_weight;
 	int _gold;
-	const Item* _slots[52];
 };
 
-LootInvValue::LootInvValue() : _slots_used(0), _items_weight(0), _gold(0) {
-	fill(_slots, _slots + 52, 0);
-}
+LootInvValue::LootInvValue() : _slots_used(0), _items_weight(0), _gold(0) { }
 
-int LootInvValue::addItem(const Item& item, bool save) {
-	int reuse   = -1;
+int LootInvValue::addItem(const Item& item, int already, bool save) {
 	int newgold = _gold;
 	int newslot = _slots_used;
 	int newinvw = _items_weight;
-	bool overfull = false;
+
 	if (item.name() == "gold piece") {
 		newgold++;
 	} else {
-		for (reuse = 0; reuse < _slots_used; reuse++)
-			if ((*_slots[reuse]) == item)
-				break;
-		if (reuse != _slots_used) {
-			if (_slots_used == 52)
-				overfull = true;
-			else
-				_slots[_slots_used] = &item;
+		if (already == 0) // first item of this stack
 			newslot++;
-		}
-		newinvw += item.weight();
+		newinvw += 50; // TODO implement Item::weight
 	}
 	int totalw = newinvw + (newgold + 50) / 100;
 	int value = 0;
@@ -201,7 +189,7 @@ int LootInvValue::addItem(const Item& item, bool save) {
 		value += VALUE_GOLD_10K;
 
 	value -= VALUE_WEIGHT_PEN * totalw;
-	if (overfull) value = -100000000;
+	if (newslot > 52) value = -100000000;
 
 	if (save) {
 		_slots_used = newslot;
@@ -211,20 +199,26 @@ int LootInvValue::addItem(const Item& item, bool save) {
 	return value;
 }
 
-// This is the heart of the new (Aug 2011) inventory manager.  Given a set of items known to exist, it tries to find the best combination for us to carry, using a greedy hill-climbing algorithm.
-// It starts with an empty imaginary inventory, and at each step adds the item that gives the largest benefit, stopping when no item gives a benefit.
+void Loot::createValuators(vector<InventoryValuator*>& to) {
+	to.push_back(new LootInvValue());
+}
 
-// The fundamental property of this algorithm is:
-// Theorem 1.  If A = B \cup C and Part(D) = D, then Part(A \cup D) = D if and only if Part(B \cup D) = D and Part(C \cup D) = D
-// (for the purposes of these proofs, Part(X) can be considered to return an ordered list)
+// This is the heart of the new (Aug 2011) inventory manager.  Given a set of items known to exist, it tries to find the best combination for us to carry, using
+// a greedy hill-climbing algorithm.  It starts with an empty imaginary inventory, and at each step adds the item that gives the largest benefit, stopping when
+// no item gives a benefit.
 
-// Proof(if): If Part(A \cup D) != D, then at some step either an item must be chosen which is not in D, or the algorithm must terminate early.  Early termination would contradict the
-// assumption that Part(D) = D.  If a different item is chosen, then it must be in A, and therefore must be in B or C; without loss of generality assume B.  During the execution of
-// Part(B \cup D), at the same step, the same item is available; since it gave the largest improvement in A \cup D, it must also be the largest in the smaller set B \cup D, and
-// it must be included, violating the assumption that Part(B \cup D) = D.  As all cases lead to a contradiction, QED.
+// The fundamental property of this algorithm is: Theorem 1.  If A = B \cup C and Part(D) = D, then Part(A \cup D) = D if and only if Part(B \cup D) = D and
+// Part(C \cup D) = D (for the purposes of these proofs, Part(X) can be considered to return an ordered list)
 
-// Proof(only if): The argument is similar.  Without loss of generality, assume Part(B \cup D) != D; then, the first item in the result not in D is definitely also in A, and since
-// the corresponding element in D is not the highest in B \cup D, it cannot be the highest in A \cup D, contradicting the assumption that Part(A \cup D) = D.
+// Proof(if): If Part(A \cup D) != D, then at some step either an item must be chosen which is not in D, or the algorithm must terminate early.  Early
+// termination would contradict the assumption that Part(D) = D.  If a different item is chosen, then it must be in A, and therefore must be in B or C; without
+// loss of generality assume B.  During the execution of Part(B \cup D), at the same step, the same item is available; since it gave the largest improvement in
+// A \cup D, it must also be the largest in the smaller set B \cup D, and it must be included, violating the assumption that Part(B \cup D) = D.  As all cases
+// lead to a contradiction, QED.
+
+// Proof(only if): The argument is similar.  Without loss of generality, assume Part(B \cup D) != D; then, the first item in the result not in D is definitely
+// also in A, and since the corresponding element in D is not the highest in B \cup D, it cannot be the highest in A \cup D, contradicting the assumption that
+// Part(A \cup D) = D.
 
 // Definition.  Saiph cares about a pile P if Part(I \cup P) != I, where I is Saiph's inventory.
 
@@ -234,8 +228,8 @@ int LootInvValue::addItem(const Item& item, bool save) {
 
 // Theorem 2. Part(A \cup B) >= Part(B) in the termination order.
 
-// Proof: If Part(A \cup B) < Part(B), then there would have to be a step where Part(A \cup B) takes a smaller item; but this is not possible as A \cup B is the larger set and
-// must have a smaller maximum.
+// Proof: If Part(A \cup B) < Part(B), then there would have to be a step where Part(A \cup B) takes a smaller item; but this is not possible as A \cup B is the
+// larger set and must have a smaller maximum.
 
 // Corollary.  Saiph cares about a pile if and only if Part(I \cup P) > Part(P).
 
@@ -243,15 +237,19 @@ int LootInvValue::addItem(const Item& item, bool save) {
 
 // Theorem 3. "Global optimization" always terminates (no infinite loops).
 
-// Proof: At each step I increases in the termination order.  But I is defined on a finite universe with size \sum_{i=0}^{52} i \choose N, where N is the number of items in the game
-// (XXX it's actually a bit higher if we use bags, but still finite), so there are no infinite increasing sequences.
+// Proof: At each step I increases in the termination order.  But I is defined on a finite universe with size \sum_{i=0}^{52} i \choose N, where N is the number
+// of items in the game (XXX it's actually a bit higher if we use bags, but still finite), so there are no infinite increasing sequences.
 
 // Theorem 4.: "Global optimization" ends with I = Part(U) where U = I_0 \cup \bigcup_{0 \leq i < N} P_i.
 
-// Proof: Let F = U - I.  If I != Part(U), then I != Part(I \cup F), and therefore by iterative application of Theorem 1 there exists an item x \in F such that I != Part(I \cup x).
-// x is necessarily in some pile P_i; by Corollary 1.1 P_i is an interesting pile, contradicting the assumption that global optimization was complete.
+// Proof: Let F = U - I.  If I != Part(U), then I != Part(I \cup F), and therefore by iterative application of Theorem 1 there exists an item x \in F such that
+// I != Part(I \cup x).  x is necessarily in some pile P_i; by Corollary 1.1 P_i is an interesting pile, contradicting the assumption that global optimization
+// was complete.
 
 // Corollary: Global optimization is independant of the order in which piles are visited, or how items are initially divided into piles.
+
+// XXX The above block of comments was written without consideration for item stacks, which complicate issues somewhat.  We currently assume stacks of items
+// will merge iff they are currently stacked; I don't know if this is sufficient to get useful antistacking.
 
 void Loot::getValuators(vector<InventoryValuator*>& valuators) {
 	// Get zero or more from each analyzer; Loot's own valuator(s) will handle encumbrance and other limits
@@ -259,10 +257,10 @@ void Loot::getValuators(vector<InventoryValuator*>& valuators) {
 		(*ai)->createValuators(valuators);
 }
 
-int Loot::valuate(vector<InventoryValuator*>& valuators, const Item& item, bool save) {
+int Loot::valuate(vector<InventoryValuator*>& valuators, const Item& item, int already, bool save) {
 	int res = 0;
 	for (vector<InventoryValuator*>::iterator vi = valuators.begin(); vi != valuators.end(); ++vi)
-		res += (*vi)->addItem(item, save);
+		res += (*vi)->addItem(item, already, save);
 	return res;
 }
 
@@ -292,7 +290,7 @@ void Loot::optimizePartition(vector<int>& out, const vector<pair<int,Item> >& po
 		for (int i = 0; i < int(possibilities.size()); ++i) {
 			if (possibilities[i].first == out[i])
 				continue; // we already have all of this item
-			int candscore = valuate(valuators, possibilities[i].second, false);
+			int candscore = valuate(valuators, possibilities[i].second, out[i], false);
 			if (candscore > bestscore) {
 				sndscore  = bestscore;
 				sndnext   = bestnext;
@@ -306,7 +304,7 @@ void Loot::optimizePartition(vector<int>& out, const vector<pair<int,Item> >& po
 
 		if (spectators) {
 			for (int i = 0; i < int(spectators->size()); ++i) {
-				int specscore = valuate(valuators, (*spectators)[i], false);
+				int specscore = valuate(valuators, (*spectators)[i], 0, false);
 				if (specscore > bestscore)
 					(*spectator_out)[i] = true;
 				else if (specscore > sndscore) {
@@ -326,16 +324,16 @@ void Loot::optimizePartition(vector<int>& out, const vector<pair<int,Item> >& po
 			int sndmarg = sndscore - score;
 
 			do {
+				score = valuate(valuators, possibilities[bestnext].second, out[bestnext], true);
 				out[bestnext]++;
-				score = valuate(valuators, possibilities[bestnext].second, true);
 
-				bestscore = valuate(valuators, possibilities[bestnext].second, false);
+				bestscore = valuate(valuators, possibilities[bestnext].second, out[bestnext], false);
 			} while (out[bestnext] < possibilities[bestnext].first &&
 					((bestscore - score) > sndmarg || ((bestscore - score) == sndmarg && bestnext < sndnext)));
 		} else {
 			// No assumptions made so we can only add one before reentering the selection loop
+			score = valuate(valuators, possibilities[bestnext].second, out[bestnext], true);
 			out[bestnext]++;
-			score = valuate(valuators, possibilities[bestnext].second, true);
 		}
 	}
 

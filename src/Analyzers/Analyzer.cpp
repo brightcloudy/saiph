@@ -105,3 +105,6 @@ void Analyzer::actionCompleted(const std::string&) {
 void Analyzer::actionFailed() {
 }
 
+/* inner classes */
+InventoryValuator::InventoryValuator() { }
+InventoryValuator::~InventoryValuator() { }
