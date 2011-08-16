@@ -42,6 +42,8 @@ void Loot::analyze() {
 		return;
 	}
 
+	partitionFloorInventory();
+
 	/* don't move around when blind/confused/stunned/hallucinating */
 	if (Saiph::blind() || Saiph::confused() || Saiph::stunned() || Saiph::hallucinating())
 		return;
@@ -150,6 +152,53 @@ void Loot::onEvent(Event* const event) {
 		}
 	}
 }
+
+/* handles pickup and dropping - if this returns no actions, then floor/inv is already an optimal partition */
+void Loot::partitionFloorInventory() {
+	vector<pair<int, Item> > cands;
+	vector<int> where;
+
+	if (Saiph::zorkmids() > 0) {
+		cands.push_back(make_pair(Saiph::zorkmids(), Item("1 gold piece")));
+		where.push_back('$');
+	}
+
+	for (map<unsigned char, Item>::iterator i = Inventory::items().begin(); i != Inventory::items().end(); ++i) {
+		where.push_back(i->first);
+		cands.push_back(make_pair(i->second.count(), i->second));
+		cands.back().second.count(1);
+	}
+
+	const map<Point, Stash>& stashes = World::level().stashes();
+	map<Point,Stash>::const_iterator si = stashes.find(Saiph::position());
+
+	if (si != stashes.end()) {
+		const list<Item>& items = si->second.items();
+		int ix = 0;
+		for (list<Item>::const_iterator ii = items.begin(); ii != items.end(); ++ii) {
+			where.push_back(--ix);
+			cands.push_back(make_pair(ii->count(), *ii));
+			cands.back().second.count(1);
+		}
+	}
+
+	vector<int> chosen;
+	optimizePartition(chosen, cands, 0, 0);
+
+	vector<pair<int, Item> > to_drop;
+	for (unsigned i = 0; i < cands.size(); ++i) {
+		if (where[i] < 0) break; // this is a floor item
+		if (chosen[i] < cands[i].first) {
+			to_drop.push_back(make_pair(cands[i].first - chosen[i], cands[i].second));
+			to_drop.back().second.count(cands[i].first);
+
+			Debug::custom(name()) << "Will drop " << to_drop.back().first << " x " << to_drop.back().second << endl;
+		}
+	}
+
+	// TODO: pickup handling, armor removal, the actual drop action
+}
+
 
 class LootInvValue : public InventoryValuator {
 public:

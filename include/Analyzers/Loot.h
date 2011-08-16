@@ -36,6 +36,7 @@ namespace analyzer {
 		void getValuators(std::vector<InventoryValuator*>& valuators);
 		int valuate(std::vector<InventoryValuator*>& valuators, const Item& item, int already, bool save);
 		void optimizePartition(std::vector<int>& out, const std::vector<std::pair<int,Item> >& possibilities, std::vector<bool>* spectator_out, const std::vector<Item>* spectators);
+		void partitionFloorInventory();
 	};
 }
 #endif

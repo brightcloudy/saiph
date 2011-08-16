@@ -29,6 +29,10 @@ list<Item>& Stash::items() {
 	return _items;
 }
 
+const list<Item>& Stash::items() const {
+	return _items;
+}
+
 int Stash::lastInspected() const {
 	return _last_inspected;
 }

@@ -14,6 +14,7 @@ public:
 	int color() const;
 	int color(int color);
 	std::list<Item>& items();
+	const std::list<Item>& items() const;
 	int lastInspected() const;
 	int lastInspected(int last_inspected);
 
