@@ -15,6 +15,7 @@
 #include "Actions/EatCorpse.h"
 #include "Actions/Engrave.h"
 #include "Actions/Enhance.h"
+#include "Actions/ExplicitDrop.h"
 #include "Actions/FarLook.h"
 #include "Actions/Fight.h"
 #include "Actions/Kick.h"
@@ -80,6 +81,7 @@ const int Wish::ID = 34;
 const int Charge::ID = 35;
 const int CallMonster::ID = 36;
 const int MergeStack::ID = 37;
+const int ExplicitDrop::ID = 38;
 
 /** compilation of info on nethack nomul(<0) call sites
  *  Digesting mobs		(1 + (cwt >> 8)) * (1 + !!Slow_digestion)  "You digest"

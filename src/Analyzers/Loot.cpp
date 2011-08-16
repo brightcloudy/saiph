@@ -9,6 +9,7 @@
 #include "World.h"
 #include "Actions/Drop.h"
 #include "Actions/Engrave.h"
+#include "Actions/ExplicitDrop.h"
 #include "Actions/ListInventory.h"
 #include "Actions/Look.h"
 #include "Actions/Loot.h"
@@ -196,7 +197,10 @@ void Loot::partitionFloorInventory() {
 		}
 	}
 
-	// TODO: pickup handling, armor removal, the actual drop action
+	if (!to_drop.empty())
+		World::setAction(new action::ExplicitDrop(this, PRIORITY_LOOT_PICKUP_DROP, to_drop));
+
+	// TODO: pickup handling, armor removal
 }
 
 
