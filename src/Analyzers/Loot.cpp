@@ -15,6 +15,8 @@
 #include "Actions/Look.h"
 #include "Actions/Loot.h"
 #include "Actions/Move.h"
+#include "Actions/Remove.h"
+#include "Actions/TakeOff.h"
 #include "Events/ElberethQuery.h"
 #include "Events/StashChanged.h"
 #include "Events/ItemsOnGround.h"
@@ -112,6 +114,8 @@ void Loot::analyzeInventory(vector<Item>& cands, vector<int>& forced) {
 		blocked[SLOT_SHIRT] = blocked[SLOT_SUIT] = true;
 	if (Inventory::itemInSlot(SLOT_CLOAK).beatitude() == CURSED)
 		blocked[SLOT_SHIRT] = blocked[SLOT_SUIT] = blocked[SLOT_CLOAK] = true;
+	if (Inventory::itemInSlot(SLOT_SHIELD).beatitude() == CURSED)
+		blocked[SLOT_SHIELD] = true;
 	if (Inventory::itemInSlot(SLOT_HELMET).beatitude() == CURSED)
 		blocked[SLOT_HELMET] = true;
 	if (Inventory::itemInSlot(SLOT_LEFT_RING).beatitude() == CURSED)
@@ -182,14 +186,40 @@ void Loot::partitionFloorInventory() {
 		if (chosen[i] < cands[i].count()) {
 			to_drop.push_back(make_pair(cands[i].count() - chosen[i], cands[i]));
 
+			// this is assuming that the item data (in particular name() and additional()) is sufficient to uniquely identify a slot
+			static const int remove_slots[4] = { SLOT_LEFT_RING, SLOT_RIGHT_RING, SLOT_EYES, SLOT_AMULET };
+			for (int j = 0; j < 4; ++j) {
+				if (cands[i] == Inventory::itemInSlot(remove_slots[j])) {
+					Debug::custom(name()) << "To drop " << cands[i] << ", will remove " << Inventory::itemInSlot(remove_slots[j]) << endl;
+					World::setAction(new action::Remove(this, Inventory::keyForSlot(remove_slots[j]), PRIORITY_LOOT_PICKUP_DROP));
+					return;
+				}
+			}
+
+			// CLOAK comes before SUIT etc because we need to take off the cloak first
+			static const int takeoff_slots[7] = { SLOT_CLOAK, SLOT_SUIT, SLOT_SHIRT, SLOT_GLOVES, SLOT_HELMET, SLOT_SHIELD, SLOT_BOOTS };
+			for (int j = 0; j < 7; ++j) {
+				int sl = takeoff_slots[j];
+				// take off this item if we want to drop it, or we want to drop something it's covering
+				if (Inventory::keyForSlot(sl) != ILLEGAL_ITEM && (cands[i] == Inventory::itemInSlot(sl) ||
+						((sl == SLOT_CLOAK || sl == SLOT_SUIT) && cands[i] == Inventory::itemInSlot(SLOT_SUIT)) ||
+						(sl == SLOT_SUIT && cands[i] == Inventory::itemInSlot(SLOT_SHIRT)))) {
+					Debug::custom(name()) << "To drop " << cands[i] << ", will take off " << Inventory::itemInSlot(sl) << endl;
+					World::setAction(new action::TakeOff(this, Inventory::keyForSlot(sl), PRIORITY_LOOT_PICKUP_DROP));
+					return;
+				}
+			}
+
 			Debug::custom(name()) << "Will drop " << to_drop.back().first << " x " << to_drop.back().second << endl;
 		}
 	}
 
-	if (!to_drop.empty())
+	if (!to_drop.empty()) {
 		World::setAction(new action::ExplicitDrop(this, PRIORITY_LOOT_PICKUP_DROP, to_drop));
+		return;
+	}
 
-	// TODO: pickup handling, armor removal
+	// TODO: pickup handling
 }
 
 

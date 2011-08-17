@@ -10,8 +10,7 @@
 #define PRIORITY_LOOT_VISIT 200
 #define PRIORITY_LOOT_DROP 150
 
-#define PRIORITY_LOOT_PICKUP_DROP 200
-#define PRIORITY_LOOT_DROP_CONTINUE 300 // higher than wearing armor
+#define PRIORITY_LOOT_PICKUP_DROP 220 // higher than ARMOR_WEAR_PRIORITY to avoid take off/wear loops
 
 namespace event {
 	class Event;
