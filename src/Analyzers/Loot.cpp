@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <stdlib.h>
+#include "Data/Weapon.h"
 #include "Debug.h"
 #include "EventBus.h"
 #include "Inventory.h"
@@ -91,44 +92,95 @@ void Loot::onEvent(Event* const event) {
 	}
 }
 
-/* handles pickup and dropping - if this returns no actions, then floor/inv is already an optimal partition */
-void Loot::partitionFloorInventory() {
-	vector<pair<int, Item> > cands;
-	vector<int> where;
-
+/* this finds the set of items that we are carrying (not completely trivial due to idiosyncratic handling of gold), and which items we cannot drop due to
+   curses */
+void Loot::analyzeInventory(vector<Item>& cands, vector<int>& forced) {
 	if (Saiph::zorkmids() > 0) {
-		cands.push_back(make_pair(Saiph::zorkmids(), Item("1 gold piece")));
-		where.push_back('$');
+		cands.push_back(Item("1 gold piece"));
+		cands.back().count(Saiph::zorkmids());
+		forced.push_back(0);
 	}
+
+	// drop checks: used leash, cursed loadstone, welded weapon, armor, ring, amulet, blindfold
+	// we don't touch leashes for now, but we could have an accident with a loadstone, and cursed armor/weapons are very real
+	bool blocked[SLOTS];
+	fill(blocked, blocked + SLOTS, false);
+
+	if (Inventory::itemInSlot(SLOT_SHIRT).beatitude() == CURSED)
+		blocked[SLOT_SHIRT] = true;
+	if (Inventory::itemInSlot(SLOT_SUIT).beatitude() == CURSED)
+		blocked[SLOT_SHIRT] = blocked[SLOT_SUIT] = true;
+	if (Inventory::itemInSlot(SLOT_CLOAK).beatitude() == CURSED)
+		blocked[SLOT_SHIRT] = blocked[SLOT_SUIT] = blocked[SLOT_CLOAK] = true;
+	if (Inventory::itemInSlot(SLOT_HELMET).beatitude() == CURSED)
+		blocked[SLOT_HELMET] = true;
+	if (Inventory::itemInSlot(SLOT_LEFT_RING).beatitude() == CURSED)
+		blocked[SLOT_LEFT_RING] = true;
+	if (Inventory::itemInSlot(SLOT_RIGHT_RING).beatitude() == CURSED)
+		blocked[SLOT_RIGHT_RING] = true;
+	if (Inventory::itemInSlot(SLOT_AMULET).beatitude() == CURSED)
+		blocked[SLOT_AMULET] = true;
+	if (Inventory::itemInSlot(SLOT_EYES).beatitude() == CURSED)
+		blocked[SLOT_EYES] = true;
+	if (Inventory::itemInSlot(SLOT_BOOTS).beatitude() == CURSED) // || bear_trap || in_floor
+		blocked[SLOT_BOOTS] = true;
+	if (Inventory::itemInSlot(SLOT_GLOVES).beatitude() == CURSED)
+		blocked[SLOT_GLOVES] = blocked[SLOT_LEFT_RING] = blocked[SLOT_RIGHT_RING] = true;
+
+	const Item& uwep = Inventory::itemInSlot(SLOT_WEAPON);
+	map<string, const data::Weapon*>::const_iterator wepp = data::Weapon::weapons().find(uwep.name());
+	if (uwep.beatitude() == CURSED && (uwep.name().find("iron chain") != string::npos || uwep.name().find("iron ball") != string::npos || uwep.name().find("tin opener") != string::npos || wepp != data::Weapon::weapons().end())) {
+		blocked[SLOT_GLOVES] = blocked[SLOT_WEAPON] = blocked[SLOT_RIGHT_RING] = true;
+		if (wepp != data::Weapon::weapons().end() && !wepp->second->oneHanded()) {
+			blocked[SLOT_LEFT_RING] = blocked[SLOT_SHIRT] = blocked[SLOT_SUIT] = true; // but not cloak, even though a cursed cloak blocks suit/shirt
+		}
+	}
+
+	if (Saiph::polymorphed()) // && nohands
+		blocked[SLOT_LEFT_RING] = blocked[SLOT_RIGHT_RING] = true;
 
 	for (map<unsigned char, Item>::iterator i = Inventory::items().begin(); i != Inventory::items().end(); ++i) {
-		where.push_back(i->first);
-		cands.push_back(make_pair(i->second.count(), i->second));
-		cands.back().second.count(1);
+		cands.push_back(i->second);
+
+		bool force = false;
+
+		// XXX this will catch cursed unID other grey stones.  This shouldn't be much of a problem since cursed gray stones are rare
+		if (i->second.beatitude() == CURSED && (i->second.name().find("gray stone") != string::npos || i->second.name().find("loadstone") != string::npos))
+			force = true;
+
+		if (Inventory::slotForKey(i->first) != ILLEGAL_SLOT && blocked[Inventory::slotForKey(i->first)])
+			force = true;
+
+		forced.push_back(force ? i->second.count() : 0);
 	}
+}
+
+/* handles pickup and dropping - if this returns no actions, then floor/inv is already an optimal partition */
+void Loot::partitionFloorInventory() {
+	vector<Item> cands;
+	vector<int> forced;
+
+	analyzeInventory(cands, forced);
+
+	unsigned maxinv = cands.size();
 
 	const map<Point, Stash>& stashes = World::level().stashes();
 	map<Point,Stash>::const_iterator si = stashes.find(Saiph::position());
 
 	if (si != stashes.end()) {
 		const list<Item>& items = si->second.items();
-		int ix = 0;
-		for (list<Item>::const_iterator ii = items.begin(); ii != items.end(); ++ii) {
-			where.push_back(--ix);
-			cands.push_back(make_pair(ii->count(), *ii));
-			cands.back().second.count(1);
-		}
+		for (list<Item>::const_iterator ii = items.begin(); ii != items.end(); ++ii)
+			cands.push_back(*ii);
 	}
 
 	vector<int> chosen;
-	optimizePartition(chosen, cands, 0, 0);
+	optimizePartition(chosen, cands, forced, 0, 0);
 
 	vector<pair<int, Item> > to_drop;
 	for (unsigned i = 0; i < cands.size(); ++i) {
-		if (where[i] < 0) break; // this is a floor item
-		if (chosen[i] < cands[i].first) {
-			to_drop.push_back(make_pair(cands[i].first - chosen[i], cands[i].second));
-			to_drop.back().second.count(cands[i].first);
+		if (i >= maxinv) break; // this is a floor item
+		if (chosen[i] < cands[i].count()) {
+			to_drop.push_back(make_pair(cands[i].count() - chosen[i], cands[i]));
 
 			Debug::custom(name()) << "Will drop " << to_drop.back().first << " x " << to_drop.back().second << endl;
 		}
@@ -258,7 +310,7 @@ int Loot::valuate(vector<InventoryValuator*>& valuators, const Item& item, int a
 // It assumes that picking up a gold piece will never make another item more valuable
 // This tries to be systematically biased to break ties in favor of items earlier in the list.  We might need a more formal tiebreak procedure.
 // If spectators is non-null it points to a vector of items which are to be tested for relevance; spectator_out[i] = true iff Part(I \cup spectators[i]) != Part(I)
-void Loot::optimizePartition(vector<int>& out, const vector<pair<int,Item> >& possibilities, vector<bool>* spectator_out, const vector<Item>* spectators) {
+void Loot::optimizePartition(vector<int>& out, const vector<Item>& possibilities, const vector<int>& forced, vector<bool>* spectator_out, const vector<Item>* spectators) {
 	vector<InventoryValuator*> valuators;
 	getValuators(valuators);
 
@@ -271,6 +323,13 @@ void Loot::optimizePartition(vector<int>& out, const vector<pair<int,Item> >& po
 		fill(spectator_out->begin(), spectator_out->end(), false);
 	}
 
+	for (int i = 0; i < int(forced.size()); ++i) {
+		for (int j = 0; j < forced[i]; ++j) {
+			score = valuate(valuators, possibilities[i], out[i], true);
+			out[i]++;
+		}
+	}
+
 	while (true) {
 		int bestscore = score;
 		int bestnext  = -1;
@@ -278,9 +337,9 @@ void Loot::optimizePartition(vector<int>& out, const vector<pair<int,Item> >& po
 		int sndnext   = -1;
 
 		for (int i = 0; i < int(possibilities.size()); ++i) {
-			if (possibilities[i].first == out[i])
+			if (possibilities[i].count() == out[i])
 				continue; // we already have all of this item
-			int candscore = valuate(valuators, possibilities[i].second, out[i], false);
+			int candscore = valuate(valuators, possibilities[i], out[i], false);
 			if (candscore > bestscore) {
 				sndscore  = bestscore;
 				sndnext   = bestnext;
@@ -307,22 +366,22 @@ void Loot::optimizePartition(vector<int>& out, const vector<pair<int,Item> >& po
 		if (bestnext < 0)
 			break; // nothing left useful to add
 
-		if (possibilities[bestnext].second.name() == "gold piece") {
+		if (possibilities[bestnext].name() == "gold piece") {
 			// Since the inventory will often be 98% gold pieces or so, we want to treat them as efficiently as we can.  Since we've assumed that
 			// gold pieces can never raise the value of other items, we keep adding gold pieces until the marginal utility is less than the
 			// original second best marginal utility.
 			int sndmarg = sndscore - score;
 
 			do {
-				score = valuate(valuators, possibilities[bestnext].second, out[bestnext], true);
+				score = valuate(valuators, possibilities[bestnext], out[bestnext], true);
 				out[bestnext]++;
 
-				bestscore = valuate(valuators, possibilities[bestnext].second, out[bestnext], false);
-			} while (out[bestnext] < possibilities[bestnext].first &&
+				bestscore = valuate(valuators, possibilities[bestnext], out[bestnext], false);
+			} while (out[bestnext] < possibilities[bestnext].count() &&
 					((bestscore - score) > sndmarg || ((bestscore - score) == sndmarg && bestnext < sndnext)));
 		} else {
 			// No assumptions made so we can only add one before reentering the selection loop
-			score = valuate(valuators, possibilities[bestnext].second, out[bestnext], true);
+			score = valuate(valuators, possibilities[bestnext], out[bestnext], true);
 			out[bestnext]++;
 		}
 	}
