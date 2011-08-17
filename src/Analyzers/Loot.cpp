@@ -264,7 +264,7 @@ int LootInvValue::addItem(const Item& item, int already, bool save) {
 	} else {
 		if (already == 0) // first item of this stack
 			newslot++;
-		newinvw += 50; // TODO implement Item::weight
+		newinvw += 0; // TODO implement Item::weight
 	}
 	int totalw = newinvw + (newgold + 50) / 100;
 	int value = piecewiseLinear(newgold, goldfunc);

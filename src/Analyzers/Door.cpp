@@ -16,19 +16,19 @@
 #include "Events/Event.h"
 #include "Events/ChangedInventoryItems.h"
 #include "Events/ReceivedItems.h"
-#include "Events/WantItems.h"
 #include "Events/ShopDetected.h"
 
 using namespace analyzer;
 using namespace event;
 using namespace std;
 
+#define VALUE_KEY 500 // will be multiplied by 1-4 depending on key quality
+
 /* constructors/destructor */
 Door::Door() : Analyzer("Door"), _unlock_tool_key(0) {
 	/* register events */
 	EventBus::registerEvent(ChangedInventoryItems::ID, this);
 	EventBus::registerEvent(ReceivedItems::ID, this);
-	EventBus::registerEvent(WantItems::ID, this);
 	EventBus::registerEvent(ShopDetected::ID, this);
 }
 
@@ -119,28 +119,16 @@ void Door::parseMessages(const string& messages) {
 }
 
 void Door::onEvent(Event* const event) {
-	if (event->id() == ChangedInventoryItems::ID) {
+	if (event->id() == ChangedInventoryItems::ID || event->id() == ReceivedItems::ID) {
 		/* inventory changed, see if we lost our unlocking device or got a new/better one */
-		map<unsigned char, Item>::iterator i = Inventory::items().find(_unlock_tool_key);
-		if (Inventory::items().find(_unlock_tool_key) == Inventory::items().end())
-			_unlock_tool_key = 0; // darn, we lost our unlocking device
-		ChangedInventoryItems* e = static_cast<ChangedInventoryItems*> (event);
-		for (set<unsigned char>::iterator k = e->keys().begin(); k != e->keys().end(); ++k) {
-			map<unsigned char, Item>::iterator i = Inventory::items().find(*k);
-			if (i != Inventory::items().end() && wantItem(i->second))
-				_unlock_tool_key = *k; // better key than what we currently got
-		}
-	} else if (event->id() == ReceivedItems::ID) {
-		ReceivedItems* e = static_cast<ReceivedItems*> (event);
-		for (map<unsigned char, Item>::iterator i = e->items().begin(); i != e->items().end(); ++i) {
-			if (wantItem(i->second))
-				_unlock_tool_key = i->first; // better key than what we currently got
-		}
-	} else if (event->id() == WantItems::ID) {
-		WantItems* e = static_cast<WantItems*> (event);
-		for (map<unsigned char, Item>::iterator i = e->items().begin(); i != e->items().end(); ++i) {
-			if ((e->dropping() && _unlock_tool_key != ILLEGAL_ITEM && i->first == _unlock_tool_key) || wantItem(i->second))
-				i->second.want(i->second.count());
+		int best_score = 0;
+		// find best unlocking device in new inventory
+		_unlock_tool_key = 0;
+		for (map<unsigned char, Item>::const_iterator k = Inventory::items().begin(); k != Inventory::items().end(); ++k) {
+			if (scoreItem(k->second) > best_score) {
+				best_score = scoreItem(k->second);
+				_unlock_tool_key = k->first;
+			}
 		}
 	} else if (event->id() == ShopDetected::ID) {
 		ShopDetected* e = static_cast<ShopDetected*> (event);
@@ -161,33 +149,44 @@ void Door::onEvent(Event* const event) {
 	}
 }
 
+class Door::InvValue : public InventoryValuator {
+	int _best_key;
+
+public:
+	InvValue() : _best_key(0) { }
+	~InvValue() { }
+
+	int addItem(const Item& itm, int, bool save) {
+		int newbest = max(_best_key, scoreItem(itm));
+		if (save)
+			_best_key = newbest;
+		return newbest * VALUE_KEY;
+	}
+};
+
+void Door::createValuators(vector<InventoryValuator*>& into) {
+	into.push_back(new InvValue);
+}
+
+
 /* private methods */
-bool Door::wantItem(const Item& item) {
+int Door::scoreItem(const Item& item) {
 	map<const string, const data::Key*>::const_iterator k = data::Key::keys().find(item.name());
 	if (k == data::Key::keys().end())
-		return false; // not a key
-
-	map<unsigned char, Item>::iterator i = Inventory::items().find(_unlock_tool_key);
-	if (i == Inventory::items().end())
-		return true; // we got no key, we want this key
+		return 0; // not a key
 
 	/* simple check to make us keep the best unlocking tool.
 	 * this needs to be improved, though. doesn't care about beatitude */
-	if (i->second.name() == "Master Key of Thievery")
-		return false;
 	if (item.name() == "Master Key of Thievery")
-		return true;
-	if (i->second.name() == "skeleton key" || i->second.name() == "key")
-		return false;
+		return 4;
 	if (item.name() == "skeleton key" || item.name() == "key")
-		return true;
-	if (i->second.name() == "lock pick")
-		return false;
-	if (item.name() == "lock pick")
-		return true;
-	if (i->second.name() == "credit card")
-		return false;
-	return true;
+		return 3;
+	if (item.name() == "lock pick" || item.name() == "osaku")
+		return 2;
+	if (item.name() == "credit card")
+		return 1;
+
+	return 0;
 }
 
 int Door::getDoorFlags(const Point& pt) {

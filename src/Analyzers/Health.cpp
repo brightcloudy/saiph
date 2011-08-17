@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <stdlib.h>
+#include "Debug.h"
 #include "EventBus.h"
 #include "Inventory.h"
 #include "Monster.h"
@@ -19,19 +20,22 @@
 #include "Events/ChangedInventoryItems.h"
 #include "Events/ElberethQuery.h"
 #include "Events/ReceivedItems.h"
-#include "Events/WantItems.h"
 #include "Data/Corpse.h"
 
 using namespace analyzer;
 using namespace event;
 using namespace std;
 
+#define VALUE_UNIHORN      10000   // one unihorn is quite valuable
+#define VALUE_UNIHORN_MAX  1       // but we only need one
+#define VALUE_LIZARD       5000    // these are also useful
+#define VALUE_LIZARD_MAX   2
+
 /* constructors/destructor */
 Health::Health() : Analyzer("Health"), _resting(false), _was_polymorphed(false), _prev_str(INT_MAX), _prev_dex(INT_MAX), _prev_con(INT_MAX), _prev_int(INT_MAX), _prev_wis(INT_MAX), _prev_cha(INT_MAX), _lizard_key(ILLEGAL_ITEM), _unihorn_key(ILLEGAL_ITEM), _unihorn_use_turn(World::internalTurn()), _unihorn_priority(ILLEGAL_PRIORITY) {
 	/* register events */
 	EventBus::registerEvent(ChangedInventoryItems::ID, this);
 	EventBus::registerEvent(ReceivedItems::ID, this);
-	EventBus::registerEvent(WantItems::ID, this);
 	World::queueAction(new action::ListPlayerAttributes(this));
 }
 
@@ -202,23 +206,38 @@ void Health::onEvent(event::Event* const event) {
 				continue;
 			}
 		}
-	} else if (event->id() == WantItems::ID) {
-		WantItems* e = static_cast<WantItems*> (event);
-		for (map<unsigned char, Item>::iterator i = e->items().begin(); i != e->items().end(); ++i) {
-			if (i->second.beatitude() != CURSED && data::UnicornHorn::unicornHorns().find(i->second.name()) != data::UnicornHorn::unicornHorns().end()) {
-				/* let's pick up all non-cursed unihorns */
-				i->second.want(i->second.count());
-				continue;
-			}
-			map<const string, const data::Corpse*>::const_iterator c = data::Corpse::corpses().find(i->second.name());
-			if (c != data::Corpse::corpses().end() && (c->second->effects() & EAT_EFFECT_CURE_STONING)) {
-				/* let's pick up all lizard corpses */
-				i->second.want(i->second.count());
-				continue;
-			}
-		}
 	}
 }
+
+class Health::InvValue : public InventoryValuator {
+	int _horns;
+	int _lizards;
+
+public:
+	InvValue() : _horns(0), _lizards(0) { }
+	~InvValue() { }
+
+	int addItem(const Item& itm, int, bool save) {
+		int newhorns = _horns;
+		int newliz = _lizards;
+		// pick up one unihorn
+		if (itm.beatitude() != CURSED && data::UnicornHorn::unicornHorns().find(itm.name()) != data::UnicornHorn::unicornHorns().end())
+			newhorns++;
+		map<const string, const data::Corpse*>::const_iterator c = data::Corpse::corpses().find(itm.name());
+		if (c != data::Corpse::corpses().end() && (c->second->effects() & EAT_EFFECT_CURE_STONING))
+			newliz++;
+		if (save) {
+			_lizards = newliz;
+			_horns = newhorns;
+		}
+		return min(newhorns, VALUE_UNIHORN_MAX) * VALUE_UNIHORN + min(newliz, VALUE_LIZARD_MAX) * VALUE_LIZARD;
+	}
+};
+
+void Health::createValuators(vector<InventoryValuator*>& into) {
+	into.push_back(new InvValue);
+}
+
 
 /* private methods */
 bool Health::canApplyUnihorn() {

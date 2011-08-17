@@ -25,10 +25,13 @@ namespace analyzer {
 		Health();
 
 		void analyze();
+		void createValuators(std::vector<InventoryValuator*>& to);
 		void parseMessages(const std::string& messages);
 		void onEvent(event::Event* const event);
 
 	private:
+		class InvValue;
+
 		bool _resting;
 		bool _was_polymorphed;
 		int _prev_str;

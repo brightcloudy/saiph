@@ -22,13 +22,15 @@ namespace analyzer {
 
 		void analyze();
 		void parseMessages(const std::string& messages);
+		void createValuators(std::vector<InventoryValuator*>& to);
 		void onEvent(event::Event* const event);
 
 	private:
+		class InvValue;
 		Point _position;
 		unsigned char _unlock_tool_key;
 
-		bool wantItem(const Item& item);
+		static int scoreItem(const Item& item);
 		int getDoorFlags(const Point& pt);
 	};
 }
