@@ -54,6 +54,7 @@ set(HEADER_FILES
 	include/Actions/Engrave.h
 	include/Actions/Enhance.h
 	include/Actions/ExplicitDrop.h
+	include/Actions/ExplicitPickup.h
 	include/Actions/FarLook.h
 	include/Actions/Fight.h
 	include/Actions/Kick.h
@@ -220,6 +221,7 @@ set(SOURCE_FILES
 	src/Actions/Engrave.cpp
 	src/Actions/Enhance.cpp
 	src/Actions/ExplicitDrop.cpp
+	src/Actions/ExplicitPickup.cpp
 	src/Actions/FarLook.cpp
 	src/Actions/Fight.cpp
 	src/Actions/Kick.cpp

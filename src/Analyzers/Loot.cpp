@@ -8,19 +8,14 @@
 #include "Inventory.h"
 #include "Saiph.h"
 #include "World.h"
-#include "Actions/Drop.h"
-#include "Actions/Engrave.h"
 #include "Actions/ExplicitDrop.h"
+#include "Actions/ExplicitPickup.h"
 #include "Actions/ListInventory.h"
 #include "Actions/Look.h"
-#include "Actions/Loot.h"
 #include "Actions/Move.h"
 #include "Actions/Remove.h"
 #include "Actions/TakeOff.h"
-#include "Events/ElberethQuery.h"
 #include "Events/StashChanged.h"
-#include "Events/ItemsOnGround.h"
-#include "Events/WantItems.h"
 
 #define VALUE_GOLD_100   1000
 #define VALUE_GOLD_1K    4000
@@ -46,7 +41,7 @@ void Loot::analyze() {
 	}
 
 	// TODO: proper shopping code
-	if (World::level().tile().symbol() != SHOP_TILE && action::Loot::canLoot())
+	if (World::level().tile().symbol() != SHOP_TILE && action::ExplicitPickup::canPickup())
 		partitionFloorInventory();
 
 	/* don't move around when blind/confused/stunned/hallucinating */
@@ -164,10 +159,11 @@ void Loot::partitionFloorInventory() {
 	vector<Item> cands;
 	vector<int> forced;
 
+	/* Figure out what we have and what we must keep */
 	analyzeInventory(cands, forced);
-
 	unsigned maxinv = cands.size();
 
+	/* Figure out what is available to take */
 	const map<Point, Stash>& stashes = World::level().stashes();
 	map<Point,Stash>::const_iterator si = stashes.find(Saiph::position());
 
@@ -177,12 +173,13 @@ void Loot::partitionFloorInventory() {
 			cands.push_back(*ii);
 	}
 
+	/* Decide what we want to have */
 	vector<int> chosen;
 	optimizePartition(chosen, cands, forced, 0, 0);
 
+	/* Drop stuff we don't want to keep, disrobing if necessary */
 	vector<pair<int, Item> > to_drop;
-	for (unsigned i = 0; i < cands.size(); ++i) {
-		if (i >= maxinv) break; // this is a floor item
+	for (unsigned i = 0; i < maxinv; ++i) {
 		if (chosen[i] < cands[i].count()) {
 			to_drop.push_back(make_pair(cands[i].count() - chosen[i], cands[i]));
 
@@ -219,7 +216,19 @@ void Loot::partitionFloorInventory() {
 		return;
 	}
 
-	// TODO: pickup handling
+	/* Pickup stuff from the ground that we want */
+	vector<pair<int, Item> > to_pick;
+	for (unsigned i = maxinv; i < cands.size(); ++i) {
+		if (chosen[i] > 0) {
+			to_pick.push_back(make_pair(chosen[i], cands[i]));
+			Debug::custom(name()) << "Will pickup " << to_pick.back().first << " x " << to_pick.back().second << endl;
+		}
+	}
+
+	if (!to_pick.empty()) {
+		World::setAction(new action::ExplicitPickup(this, PRIORITY_LOOT_PICKUP_DROP, to_pick));
+		return;
+	}
 }
 
 
