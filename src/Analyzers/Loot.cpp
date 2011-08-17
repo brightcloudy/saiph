@@ -238,6 +238,14 @@ private:
 LootInvValue::LootInvValue() : _slots_used(0), _items_weight(0), _gold(0) { }
 
 int LootInvValue::addItem(const Item& item, int already, bool save) {
+	static const int goldfunc[][2] = {
+		{ 0,     0 },
+		{ 100,   VALUE_GOLD_100 },
+		{ 1000,  VALUE_GOLD_1K },
+		{ 10000, VALUE_GOLD_10K },
+		{ 10001, VALUE_GOLD_10K },
+		{ -1, -1 }
+	};
 	int newgold = _gold;
 	int newslot = _slots_used;
 	int newinvw = _items_weight;
@@ -250,15 +258,7 @@ int LootInvValue::addItem(const Item& item, int already, bool save) {
 		newinvw += 50; // TODO implement Item::weight
 	}
 	int totalw = newinvw + (newgold + 50) / 100;
-	int value = 0;
-	if (newgold < 100)
-		value += (newgold * VALUE_GOLD_100) / 100;
-	else if (newgold < 1000)
-		value += VALUE_GOLD_100 + ((newgold - 100) * (VALUE_GOLD_1K - VALUE_GOLD_100)) / 900;
-	else if (newgold < 10000)
-		value += VALUE_GOLD_1K + ((newgold - 1000) * (VALUE_GOLD_10K - VALUE_GOLD_1K)) / 9000;
-	else
-		value += VALUE_GOLD_10K;
+	int value = piecewiseLinear(newgold, goldfunc);
 
 	value -= VALUE_WEIGHT_PEN * totalw;
 	if (newslot > 52) value = -100000000;

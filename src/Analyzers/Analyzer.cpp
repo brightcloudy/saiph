@@ -108,3 +108,18 @@ void Analyzer::actionFailed() {
 /* inner classes */
 InventoryValuator::InventoryValuator() { }
 InventoryValuator::~InventoryValuator() { }
+
+// points should refer to an array like { { 0, 0 }, { 100, 100 }, { 1000, 200 }, { -1, -1 } }
+// min. 2 rows before sentinel; first row probably should start at 0; each row is a control point
+// past the last control point piecewiseLinear does extrapolation
+int InventoryValuator::piecewiseLinear(int in, const int points[][2]) {
+	int range = 0;
+
+	if (in < 0)
+		return points[0][1];
+
+	while (points[range+2][0] >= 0 && in >= points[range+1][0])
+		++range;
+
+	return points[range][1] + (points[range+1][1] - points[range][1]) * (in - points[range][0]) / (points[range+1][0] - points[range][0]);
+}

@@ -17,7 +17,11 @@
 #include "Events/EatItem.h"
 #include "Events/ItemsOnGround.h"
 #include "Events/ReceivedItems.h"
-#include "Events/WantItems.h"
+
+// food is initially very valuable, but tapers off quickly
+#define FOOD_VALUE_1K  10000
+#define FOOD_VALUE_5K  20000
+#define FOOD_VALUE_10K 25000
 
 using namespace analyzer;
 using namespace event;
@@ -54,7 +58,6 @@ Food::Food() : Analyzer("Food") {
 	EventBus::registerEvent(EatItem::ID, this);
 	EventBus::registerEvent(ItemsOnGround::ID, this);
 	EventBus::registerEvent(ReceivedItems::ID, this);
-	EventBus::registerEvent(WantItems::ID, this);
 }
 
 /* methods */
@@ -102,6 +105,39 @@ void Food::analyze() {
 void Food::parseMessages(const string&) {
 }
 
+class Food::InvValue : public InventoryValuator {
+	int _nutrition;
+	Food* _parent;
+
+public:
+	InvValue(Food* parent) : _nutrition(0), _parent(parent) { }
+	virtual ~InvValue() { }
+
+	virtual int addItem(const Item& itm, int, bool save) {
+		static const int foodfunc[][2] = {
+			{ 0, 0 },
+			{ 1000,  FOOD_VALUE_1K },
+			{ 5000,  FOOD_VALUE_5K },
+			{ 10000, FOOD_VALUE_10K },
+			{ 10001, FOOD_VALUE_10K },
+			{ -1, -1 }
+		};
+		int newnutr = _nutrition;
+		if (_parent->_eat_priority.find(itm.name()) != _parent->_eat_priority.end()) {
+			// good food!
+			const data::Food* dat = data::Food::foods().find(itm.name())->second;
+			newnutr += dat->nutrition();
+		}
+		if (save)
+			_nutrition = newnutr;
+		return piecewiseLinear(newnutr, foodfunc);
+	}
+};
+
+void Food::createValuators(vector<InventoryValuator*>& into) {
+	into.push_back(new InvValue(this));
+}
+
 void Food::onEvent(Event* const event) {
 	if (event->id() == ItemsOnGround::ID) {
 		// FIXME?: do we want/need to eat corpses in shops?
@@ -126,15 +162,6 @@ void Food::onEvent(Event* const event) {
 					break;
 				}
 			}
-		}
-	} else if (event->id() == WantItems::ID) {
-		WantItems* e = static_cast<WantItems*> (event);
-		for (map<unsigned char, Item>::iterator i = e->items().begin(); i != e->items().end(); ++i) {
-			if (_eat_priority.find(i->second.name()) == _eat_priority.end())
-				continue; // don't want this food item
-			if (i->second.name().find("lizard") != string::npos)
-				continue; // lizard corpses are handled by Health analyzer
-			i->second.want(i->second.count());
 		}
 	} else if (event->id() == ChangedInventoryItems::ID) {
 		ChangedInventoryItems* e = static_cast<ChangedInventoryItems*> (event);

@@ -29,6 +29,8 @@ namespace analyzer {
 		virtual ~InventoryValuator();
 
 		virtual int addItem(const Item& i, int already, bool save) = 0;
+
+		static int piecewiseLinear(int input, const int points[][2]);
 	};
 
 	class Analyzer {

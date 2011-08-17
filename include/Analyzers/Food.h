@@ -28,8 +28,10 @@ namespace analyzer {
 		void analyze();
 		void parseMessages(const std::string& messages);
 		void onEvent(event::Event* const event);
+		virtual void createValuators(std::vector<InventoryValuator*>& to);
 
 	private:
+		class InvValue;
 		std::map<std::string, int> _eat_priority;
 		std::set<unsigned char> _food_items;
 
