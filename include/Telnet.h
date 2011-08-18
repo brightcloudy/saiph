@@ -24,6 +24,7 @@ private:
 	int _sock;
 	char _ping[3];
 	bool _vt_tiledata2011;
+	bool _nethack_exited;
 	int _overs_pending;
 
 	int transmit(const char* data, int length);

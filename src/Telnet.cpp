@@ -13,7 +13,7 @@
 using namespace std;
 
 /* constructors/destructor */
-Telnet::Telnet() : _vt_tiledata2011(false), _overs_pending(0) {
+Telnet::Telnet() : _vt_tiledata2011(false), _nethack_exited(false), _overs_pending(0) {
 	/* read login details from .account */
 	ifstream account;
 	account.open(".account");
@@ -103,8 +103,14 @@ int Telnet::doRetrieve(char* buffer, int count) {
 	int overs = 0;
 	/* if the target is cooperating, we don't need to play games with the telnetd */
 	if (_vt_tiledata2011) {
+		if (_nethack_exited) {
+			buffer[0] = 0;
+			return 0;
+		}
 		while ((overs = scanOvers(buffer, retrieved)) < _overs_pending) {
+			Debug::info() << overs << '/' << _overs_pending << endl;
 			returned = recv(_sock, &buffer[retrieved], count - retrieved - 1, 0);
+			Debug::rawCharArray(buffer, retrieved, retrieved + returned);
 			retrieved += returned;
 		}
 		_overs_pending -= overs;
@@ -199,6 +205,15 @@ int Telnet::scanOvers(const char* data, int length) {
 		if (ptr[0] == 27 && ptr[1] == '[' && ptr[2] == '3' && ptr[3] == 'z') {
 			found++;
 			ptr += 3;
+		}
+		// Mega-Hack - This is the xterm-basic 'smkx' sequence, once we see it we can't count on receiving any more ESC [ 3 z sequences.
+		// but it's also generated before we begin...
+		if (ptr[0] == 27 && ptr[1] == '[' && ptr[2] == '?' && ptr[3] == '1' &&
+				_vt_tiledata2011 && ptr <= data + length - 7 && ptr[4] == 'h' && ptr[5] == 27 && ptr[6] == '=') {
+			Debug::rawCharArray(data, 0, length);
+			Debug::info() << "Detected smkx" << endl;
+			_nethack_exited = true;
+			return _overs_pending;
 		}
 	}
 	return found;
