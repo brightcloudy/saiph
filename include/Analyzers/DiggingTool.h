@@ -14,10 +14,11 @@ namespace analyzer {
 		DiggingTool();
 
 		void onEvent(event::Event* const event);
+		void createValuators(std::vector<InventoryValuator*>& to);
 
 	private:
-		int scoreDigger(const Item& item);
-		void rankDiggers(int&, int&, const std::map<unsigned char, Item>*, const std::map<unsigned char, Item>*);
+		class InvValue;
+		static int scoreDigger(const Item& item);
 		void findDigger();
 
 		int _digging_tool_key;

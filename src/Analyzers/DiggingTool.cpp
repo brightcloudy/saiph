@@ -12,17 +12,17 @@
 #include "Events/Beatify.h"
 #include "Events/ChangedInventoryItems.h"
 #include "Events/ReceivedItems.h"
-#include "Events/WantItems.h"
 #include "Events/GotDiggingTool.h"
 
 using namespace analyzer;
 using namespace event;
 using namespace std;
 
+#define VALUE_DIGGER 7000
+
 /* constructors/destructor */
 DiggingTool::DiggingTool() : Analyzer("DiggingTool"), _digging_tool_key(0) {
 	/* register events */
-	EventBus::registerEvent(WantItems::ID, this);
 	EventBus::registerEvent(ChangedInventoryItems::ID, this);
 	EventBus::registerEvent(ReceivedItems::ID, this);
 }
@@ -31,19 +31,26 @@ DiggingTool::DiggingTool() : Analyzer("DiggingTool"), _digging_tool_key(0) {
 void DiggingTool::onEvent(Event* const event) {
 	if (event->id() == ChangedInventoryItems::ID || event->id() == ReceivedItems::ID) {
 		findDigger();
-	} else if (event->id() == WantItems::ID) {
-		WantItems* e = static_cast<WantItems*> (event);
-		int key;
-		int score;
-
-		// WantItems is called once per page while dropping, but the ranking needs to see the whole list...
-		rankDiggers(key, score, (e->dropping() ? NULL : &Inventory::items()), (e->dropping() ? &Inventory::items() : &e->items()));
-
-		if (key >= 0 && e->items().find(key) != e->items().end()) {
-			Item& item = e->items()[(unsigned char)key];
-			item.want(min(1, item.count()));
-		}
 	}
+}
+
+class DiggingTool::InvValue : public InventoryValuator {
+	int _best;
+
+public:
+	InvValue() : _best(0) { }
+	~InvValue() { }
+
+	int addItem(const Item& itm, int, bool save) {
+		int newbest = max(_best, scoreDigger(itm));
+		if (save)
+			_best = newbest;
+		return newbest * VALUE_DIGGER;
+	}
+};
+
+void DiggingTool::createValuators(vector<InventoryValuator*>& into) {
+	into.push_back(new InvValue);
 }
 
 /* private methods */
@@ -56,22 +63,16 @@ int DiggingTool::scoreDigger(const Item& item) {
 	// prefer pick-axes - they're lighter
 	if (item.name() == "pick-axe")
 		score++;
-	else if (Inventory::keyForSlot(SLOT_SHIELD))
+	else if (Inventory::keyForSlot(SLOT_SHIELD)) // XXX all keyForSlot checks in valuators are wrong
 		score = -1;
 	return score;
 }
 
-// key has to default -1 because the maps from actions::Loot use 0.. as key range
-void DiggingTool::rankDiggers(int& key, int& score, const map<unsigned char, Item> *fixed, const map<unsigned char, Item> *variable) {
-	key = -1;
-	score = -1;
+void DiggingTool::findDigger() {
+	int key = ILLEGAL_ITEM;
+	int score = -1;
 
-	if (fixed) {
-		for (map<unsigned char, Item>::const_iterator i = fixed->begin(); i != fixed->end(); ++i)
-			score = max(score, scoreDigger(i->second));
-	}
-
-	for (map<unsigned char, Item>::const_iterator i = variable->begin(); i != variable->end(); ++i) {
+	for (map<unsigned char, Item>::const_iterator i = Inventory::items().begin(); i != Inventory::items().end(); ++i) {
 		int nscore = scoreDigger(i->second);
 		if (nscore > score) {
 			score = nscore;
@@ -79,17 +80,10 @@ void DiggingTool::rankDiggers(int& key, int& score, const map<unsigned char, Ite
 		}
 	}
 
-}
-
-void DiggingTool::findDigger() {
-	int key;
-	int score;
-	rankDiggers(key, score, NULL, &Inventory::items());
-
-	if (key >= 0 && Inventory::itemAtKey(key).beatitude() == BEATITUDE_UNKNOWN) {
+	if (key != ILLEGAL_ITEM && Inventory::itemAtKey(key).beatitude() == BEATITUDE_UNKNOWN) {
 		Beatify b((unsigned char)key, 175);
 		EventBus::broadcast(&b);
-		key = -1; // not usable yet
+		key = ILLEGAL_ITEM; // not usable yet
 	}
 
 	if (_digging_tool_key != key) {
