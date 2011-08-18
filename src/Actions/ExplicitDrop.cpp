@@ -77,7 +77,7 @@ void ExplicitDrop::update(const std::string& messages) {
 					obj = i->second;
 				} else {
 					/* should only happen for gold */
-					if (messages.substr(pos, length).find("gold piece") == std::string::npos) {
+					if (messages.substr(pos, length).find("gold piece") != std::string::npos) {
 						obj = Item("1 gold piece");
 						obj.count(Saiph::zorkmids());
 					}
