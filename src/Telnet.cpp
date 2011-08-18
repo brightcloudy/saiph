@@ -108,9 +108,7 @@ int Telnet::doRetrieve(char* buffer, int count) {
 			return 0;
 		}
 		while ((overs = scanOvers(buffer, retrieved)) < _overs_pending) {
-			Debug::info() << overs << '/' << _overs_pending << endl;
 			returned = recv(_sock, &buffer[retrieved], count - retrieved - 1, 0);
-			Debug::rawCharArray(buffer, retrieved, retrieved + returned);
 			retrieved += returned;
 		}
 		_overs_pending -= overs;
@@ -210,7 +208,6 @@ int Telnet::scanOvers(const char* data, int length) {
 		// but it's also generated before we begin...
 		if (ptr[0] == 27 && ptr[1] == '[' && ptr[2] == '?' && ptr[3] == '1' &&
 				_vt_tiledata2011 && ptr <= data + length - 7 && ptr[4] == 'h' && ptr[5] == 27 && ptr[6] == '=') {
-			Debug::rawCharArray(data, 0, length);
 			Debug::info() << "Detected smkx" << endl;
 			_nethack_exited = true;
 			return _overs_pending;
