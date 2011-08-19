@@ -125,6 +125,52 @@ bool Weapon::betterThanWhatWeGot(const Item& item) {
 	return score > min_score; // returns true if this weapon is better than any weapon we got
 }
 
+class Weapon::InvValue : public InventoryValuator {
+	int _bestscore; // best score, halved for unknown BUC
+	int _bestnscore; // best score, not halved
+	int _otherscore; // score of all other weapons, no BUC penalty
+	
+public:
+	InvValue() : _bestscore(0), _bestnscore(0), _otherscore(0) { }
+	~InvValue() { }
+
+	int addItem(const Item& itm, int, bool save) {
+		// pick up one unihorn
+		int score = 0;
+		int bestscore = _bestscore;
+		int bestnscore = _bestnscore;
+		int otherscore = _otherscore;
+		if (data::Weapon::weapons().find(itm.name()) != data::Weapon::weapons().end()) {
+			const data::Weapon* wdat = data::Weapon::weapons().find(itm.name())->second;
+			for (vector<data::Attack>::const_iterator a = wdat->attackSmall().begin(); a != wdat->attackSmall().end(); ++a)
+				score += a->avgDamage();
+			for (vector<data::Attack>::const_iterator a = wdat->attackLarge().begin(); a != wdat->attackLarge().end(); ++a)
+				score += a->avgDamage();
+			score += itm.enchantment() * 2;
+			score -= itm.damage() * 2;
+			if (score > bestscore) {
+				otherscore += bestnscore;
+				bestnscore = score;
+				if (itm.beatitude() == BEATITUDE_UNKNOWN)
+					score /= 2;
+				bestscore = score;
+			} else
+				otherscore += score;
+		}
+		if (save) {
+			_bestscore = bestscore;
+			_bestnscore = bestnscore;
+			_otherscore = otherscore;
+		}
+		return bestscore + otherscore;
+	}
+
+};
+
+void Weapon::createValuators(vector<InventoryValuator*>& into) {
+	into.push_back(new InvValue);
+}
+
 int Weapon::calculateWeaponScore(const Item& item, const data::Weapon* weapon) {
 	if (!weapon->oneHanded() && Inventory::keyForSlot(SLOT_SHIELD) != ILLEGAL_ITEM)
 		return 0; // for now, don't try to wield two-hander when we got a shield

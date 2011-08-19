@@ -23,9 +23,11 @@ namespace analyzer {
 		Weapon();
 
 		void analyze();
+		void createValuators(std::vector<InventoryValuator*>& to);
 		void onEvent(event::Event* const event);
 
 	private:
+		class InvValue;
 		unsigned char _wield_weapon;
 		std::map<unsigned char, int> _melee_weapons;
 		std::map<unsigned char, int> _range_weapons;
