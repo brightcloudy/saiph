@@ -1,6 +1,7 @@
 #include "Analyzers/Weapon.h"
 
 #include <stdlib.h>
+#include "Debug.h"
 #include "EventBus.h"
 #include "Inventory.h"
 #include "Saiph.h"
@@ -135,7 +136,6 @@ public:
 	~InvValue() { }
 
 	int addItem(const Item& itm, int, bool save) {
-		// pick up one unihorn
 		int score = 0;
 		int bestscore = _bestscore;
 		int bestnscore = _bestnscore;
@@ -143,11 +143,28 @@ public:
 		if (data::Weapon::weapons().find(itm.name()) != data::Weapon::weapons().end()) {
 			const data::Weapon* wdat = data::Weapon::weapons().find(itm.name())->second;
 			for (vector<data::Attack>::const_iterator a = wdat->attackSmall().begin(); a != wdat->attackSmall().end(); ++a)
-				score += a->avgDamage();
+				score += a->avgDamage() * 750;
 			for (vector<data::Attack>::const_iterator a = wdat->attackLarge().begin(); a != wdat->attackLarge().end(); ++a)
-				score += a->avgDamage();
-			score += itm.enchantment() * 2;
-			score -= itm.damage() * 2;
+				score += a->avgDamage() * 750;
+			score += itm.enchantment() * 800;
+			score -= itm.damage() * 750;
+			int skill = data::Skill::roleMax(Saiph::role(), abs(wdat->type()));
+			switch (skill) {
+			case P_BASIC:
+				break;
+
+			case P_SKILLED:
+				score += 400 + 1000;
+				break;
+
+			case P_EXPERT:
+				score += 600 + 2000;
+				break;
+
+			default:
+				score += -800 + -2000;
+				break;
+			}
 			if (score > bestscore) {
 				otherscore += bestnscore;
 				bestnscore = score;
