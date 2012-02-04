@@ -50,6 +50,8 @@ void Door::analyze() {
 			continue; // shop and we got no means of opening it (well, except kicking)
 		if (Saiph::inAPit() && tile.distance() == 1)
 			continue; // in a pit next to the door, prevent her from trying to open it (and fail)
+		if (Saiph::polymorphed() && (Saiph::intrinsics() & PROPERTY_LYCANTHROPY))
+			continue; // we're most likely in werefoo form and we don't have hands
 		if (tile.distance() == 1) {
 			/* open/pick/kick door */
 			if (!(d->second & DOOR_IS_LOCKED)) {
