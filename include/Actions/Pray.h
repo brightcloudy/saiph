@@ -16,6 +16,7 @@ namespace action {
 
 		static bool isSafeToPray();
 		static bool isSafeToPrayMajorTrouble();
+		static bool prayerCanSucceed();
 		virtual int id();
 		virtual const Command& command();
 		virtual void update(const std::string& messages);

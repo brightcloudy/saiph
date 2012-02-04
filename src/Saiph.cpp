@@ -79,6 +79,8 @@ unsigned long long Saiph::_extrinsics = 0;
 int Saiph::_current_skills[P_NUM_SKILLS];
 /* last turn she prayed */
 int Saiph::_last_prayed = 0;
+/* god's current anger */
+int Saiph::_anger = 0;
 /* name */
 string Saiph::_name;
 /* race */
@@ -236,6 +238,8 @@ void Saiph::parseMessages(const string& messages) {
 			_in_a_pit = true;
 		if (messages.find(MESSAGE_CRAWL_OUT_OF_PIT) != string::npos || messages.find(MESSAGE_YOU_FLOAT_OUT_OF_PIT) != string::npos || messages.find(MESSAGE_CANNOT_REACH_BOTTOM_OF_PIT) != string::npos)
 			_in_a_pit = false;
+		if (messages.find(MESSAGE_GOD_DISPLEASED) != string::npos || messages.find(MESSAGE_GOD_ARROGANT) != string::npos || messages.find(MESSAGE_GOD_ANGERED) != string::npos || messages.find(MESSAGE_GOD_MINION) != string::npos)
+			Saiph::_anger++;
 	}
 }
 
@@ -517,6 +521,15 @@ int Saiph::lastPrayed() {
 int Saiph::lastPrayed(int last_prayed) {
 	_last_prayed = last_prayed;
 	return Saiph::lastPrayed();
+}
+
+int Saiph::anger() {
+	return _anger;
+}
+
+int Saiph::anger(int anger) {
+	_anger = anger;
+	return Saiph::anger();
 }
 
 const string& Saiph::name() {

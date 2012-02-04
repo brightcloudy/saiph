@@ -17,19 +17,19 @@ Pray::~Pray() {
 
 /* methods */
 bool Pray::isSafeToPray() {
-	if (Saiph::polymorphed()) {
-		if (data::Monster::monster(Saiph::race())->symbol() == S_DEMON)
-			return false;
-	}
-	return World::turn() - PRAY_PRAYER_TIMEOUT > Saiph::lastPrayed();
+	return (World::turn() - PRAY_PRAYER_TIMEOUT > Saiph::lastPrayed()) && prayerCanSucceed();
 }
 
 bool Pray::isSafeToPrayMajorTrouble() {
+	return (World::turn() - PRAY_MAJOR_TROUBLE > Saiph::lastPrayed()) && prayerCanSucceed();
+}
+
+bool Pray::prayerCanSucceed() {
 	if (Saiph::polymorphed()) {
 		if (data::Monster::monster(Saiph::race())->symbol() == S_DEMON)
 			return false;
 	}
-	return World::turn() - PRAY_MAJOR_TROUBLE > Saiph::lastPrayed();
+	return Saiph::anger() == 0;
 }
 
 int Pray::id() {

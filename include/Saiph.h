@@ -70,6 +70,8 @@ public:
 	static unsigned long long removeExtrinsics(unsigned long long extrinsics);
 	static int lastPrayed();
 	static int lastPrayed(int last_prayed);
+	static int anger();
+	static int anger(int anger);
 	static const std::string& name();
 	static const std::string& race();
 	static int role();
@@ -121,6 +123,8 @@ private:
 	static unsigned long long _extrinsics;
 	/* last turn she prayed */
 	static int _last_prayed;
+	/* god's anger */
+	static int _anger;
 	/* current skills, 0 = restricted */
 	static int _current_skills[];
 	/* name */

@@ -67,7 +67,8 @@ void Health::analyze() {
 			/* unable to use unihorn, need to try something else */
 			/* TODO: eat eucalyptus leaf (if foodpoisoned or ill and no unihorn) */
 			/* if we can't cure this in any other way, just pray even if it's not safe, because we'll die for sure if we don't */
-			World::setAction(new action::Pray(this, PRIORITY_HEALTH_CURE_DEADLY));
+			if (action::Pray::prayerCanSucceed()) // but there's no point in praying if it absolutely /can't/ succeed.
+				World::setAction(new action::Pray(this, PRIORITY_HEALTH_CURE_DEADLY));
 		}
 	} else if (_resting) {
 		/* [still] resting */
@@ -115,7 +116,8 @@ void Health::analyze() {
 			World::setAction(new action::Eat(this, _lizard_key, PRIORITY_HEALTH_CURE_STONING));
 		} else {
 			//we'll die if we don't pray, so let's pray
-			World::setAction(new action::Pray(this, PRIORITY_HEALTH_CURE_STONING));
+			if (action::Pray::prayerCanSucceed())
+				World::setAction(new action::Pray(this, PRIORITY_HEALTH_CURE_STONING));
 		}
 	}
 	if (Saiph::polymorphed()) {
